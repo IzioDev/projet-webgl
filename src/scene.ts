@@ -76,6 +76,14 @@ export class Scene {
         }
       })
     });
+    this.splats.forEach((splat) => {
+      splat.keyHandlers.forEach((keyHandler) => {
+        if (this.currentlyPressed[keyHandler.key]) {
+          keyHandler.cb();
+        }
+      })
+    });
+
   }
 
   drawScene() {

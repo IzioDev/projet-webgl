@@ -9077,6 +9077,13 @@ function () {
         }
       });
     });
+    this.splats.forEach(function (splat) {
+      splat.keyHandlers.forEach(function (keyHandler) {
+        if (_this.currentlyPressed[keyHandler.key]) {
+          keyHandler.cb();
+        }
+      });
+    });
   };
 
   Scene.prototype.drawScene = function () {
