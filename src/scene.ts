@@ -1,123 +1,142 @@
-import {Background} from "./objects/background";
-import {Model} from "./objects/model";
-import {Splat} from "./objects/splat";
-import {requestAnimFrame} from "./utils/game-utils";
+import { Background } from "./objects/background";
+import { Model } from "./objects/model";
+import { Splat } from "./objects/splat";
 
 export class Scene {
-    gl: WebGL2RenderingContext;
-    background: Background;
-    model: Model;
-    splat: Splat;
+  gl: WebGL2RenderingContext;
+  background: Background;
+  model: Model;
+  splat: Splat;
 
-    currentlyPressed: any = {};
+  loadedModels: Model[] = [];
+  loadedSplats: Splat[] = [];
 
-    lastTime = 0;
+  models: Model[] = [];
+  splats: Splat[] = [];
 
-    constructor(gl: WebGL2RenderingContext, background: Background, model: Model, splat: Splat) {
-        this.background = background;
-        this.model = model;
-        this.splat = splat;
-        this.gl = gl;
+  currentlyPressed: any = {};
 
-        const handleKeyDown = (event) => {
-            this.currentlyPressed[event.keyCode] = true;
-        };
+  lastTime = 0;
 
-        const handleKeyUp = (event) => {
-            this.currentlyPressed[event.keyCode] = false;
-        };
+  constructor(
+    gl: WebGL2RenderingContext,
+  ) {
+    this.gl = gl;
 
-        document.onkeydown = handleKeyDown;
-        document.onkeyup = handleKeyUp;
-    }
-
-    tick() {
-        setTimeout(() => {
-            window.requestAnimationFrame(this.tick.bind(this));
-            this.handleKeys();
-            this.drawScene();
-            this.animate();
-        },  1000/60);
-
+    const handleKeyDown = (event: KeyboardEvent) => {
+      this.currentlyPressed[event.keyCode] = true;
     };
 
-    handleKeys() {
-        if (this.currentlyPressed[68]) {
-            // D
-            this.model.move(1, 0);
-        }
+    const handleKeyUp = (event: KeyboardEvent) => {
+      this.currentlyPressed[event.keyCode] = false;
+    };
 
-        if (this.currentlyPressed[81]) {
-            // Q
-            this.model.move(-1, 0);
-        }
+    document.onkeydown = handleKeyDown;
+    document.onkeyup = handleKeyUp;
+  }
 
-        if (this.currentlyPressed[90]) {
-            // Z
-            this.model.move(0, 1);
-        }
+  setBackground(background: Background) {
+    this.background = background;
+  }
 
-        if (this.currentlyPressed[83]) {
-            // S
-            this.model.move(0, -1);
-        }
+  addModelFromObjectUri(objectUri: string, id: string): Promise<Model> {
+    return new Promise((res, _) => {
+      const model = new Model(this.gl, objectUri, id);
+      model.load().then(() => {
+        this.models.push(model);
+        res(model);
+      });
+    });
+  }
 
-        if (this.currentlyPressed[77]) {
-            // M
-            // juste un test pour supprimer un splat (tir)
-            this.splat.clear();
-        }
+  tick() {
+    setTimeout(() => {
+      window.requestAnimationFrame(this.tick.bind(this));
+      this.handleKeys();
+      this.drawScene();
+      this.animate();
+    }, 1000 / 60);
+  }
 
-        if (this.currentlyPressed[32]) {
-            // SPACE
-            // exemple: comment positionner un splat devant le vaisseau
-            var p = this.model.getBBox(); // boite englobante du vaisseau sur l'�cran
-            var x = (p[0][0] + p[1][0]) / 2;
-            var y = p[1][1];
-            var z = p[1][2] + 0.005; // profondeur du splat (juste derri�re le vaisseau)
-
-            this.splat.setPosition(x, y, z);
+  handleKeys() {
+    this.models.forEach((model) => {
+      model.keyHandlers.forEach((keyHandler) => {
+        if (this.currentlyPressed[keyHandler.key]) {
+          keyHandler.cb();
         }
+      })
+    });
+
+    if (this.currentlyPressed[77]) {
+      // M
+      // juste un test pour supprimer un splat (tir)
+      this.splat.clear();
     }
 
-    drawScene() {
-        const {gl} = this;
-        // initialisation du viewport
-        gl.viewport(0, 0, gl.getParameter(gl.VIEWPORT)[2], gl.getParameter(gl.VIEWPORT)[3]);
+    if (this.currentlyPressed[32]) {
+      // SPACE
+      // exemple: comment positionner un splat devant le vaisseau
+      var p = this.model.getBBox(); // boite englobante du vaisseau sur l'�cran
+      var x = (p[0][0] + p[1][0]) / 2;
+      var y = p[1][1];
+      var z = p[1][2] + 0.005; // profondeur du splat (juste derri�re le vaisseau)
 
-        // efface les buffers de couleur et de profondeur
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        // dessin du fond (d�commenter pour travailler dessus)
-        // gl.useProgram(background.shader());
-        // background.sendUniformVariables();
-        // background.draw();
-
-        // dessin du vaisseau
-        gl.useProgram(this.model.getShader());
-        this.model.sendUniformVariables();
-        this.model.draw();
-
-        // test pour afficher un splat quand on appuie sur espace
-        gl.enable(gl.BLEND); // transparence activ�e
-        gl.useProgram(this.splat.getShader());
-        this.splat.sendUniformVariables();
-        this.splat.draw();
-        gl.disable(gl.BLEND); // transparence d�sactiv�e
+      this.splat.setPosition(x, y, z);
     }
+  }
 
-    animate() {
-        // fonction appel�e � chaque frame, permet d'animer la sc�ne
-        const timeNow = new Date().getTime();
+  drawScene() {
+    const { gl } = this;
+    // initialisation du viewport
+    gl.viewport(
+      0,
+      0,
+      gl.getParameter(gl.VIEWPORT)[2],
+      gl.getParameter(gl.VIEWPORT)[3]
+    );
 
-        if (this.lastTime != 0) {
-            // anime chacun des objets de la scene
-            // si necessaire (en fonction du temps ecoul�)
-            var elapsed = timeNow - this.lastTime;
-            this.model.setParameters(elapsed);
-            // this.background.setParameters(elapsed);
-            this.splat.setParameters(elapsed);
-        }
-        this.lastTime = timeNow;
+    // efface les buffers de couleur et de profondeur
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // dessin du fond (d�commenter pour travailler dessus)
+    gl.useProgram(this.background.getShader());
+    this.background.sendUniformVariables();
+    this.background.draw();
+
+    // Draw all models :
+    this.models.forEach(model => {
+      gl.useProgram(model.getShader());
+      model.sendUniformVariables();
+      model.draw();
+    });
+
+    // For each splats, let's activate transparency, draw it.
+    this.splats.forEach(splat => {
+      gl.enable(gl.BLEND); // transparence activ�e
+      gl.useProgram(splat.getShader());
+      splat.sendUniformVariables();
+      splat.draw();
+      gl.disable(gl.BLEND); // transparence d�sactiv�e
+    });
+  }
+
+  animate() {
+    const timeNow = new Date().getTime();
+
+    if (this.lastTime != 0) {
+      const elapsed = timeNow - this.lastTime;
+
+      this.models.forEach((model) => {
+        model.setParameters(elapsed);
+      });
+
+      this.splats.forEach((splat) => {
+        splat.setParameters(elapsed);
+      });
+
+      // this.background.setParameters(elapsed);
+
     }
+    this.lastTime = timeNow;
+  }
 }

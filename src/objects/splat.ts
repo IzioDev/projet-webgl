@@ -1,4 +1,7 @@
+import {initShaders} from "../utils/game-utils";
+
 export class Splat {
+    id: string;
     texture: WebGLTexture;
     gl: WebGL2RenderingContext;
     shader: WebGLProgram;
@@ -35,7 +38,9 @@ export class Splat {
 
     loaded = false;
 
-    constructor(gl: WebGL2RenderingContext, splatShader: WebGLProgram,texture: WebGLTexture) {
+    constructor(gl: WebGL2RenderingContext, splatShader: WebGLProgram, texture: WebGLTexture, id: string) {
+        Splat.initShader(gl);
+        this.id = id;
         this.gl = gl;
         this.texture = texture;
         this.shader = splatShader;
@@ -134,4 +139,26 @@ export class Splat {
         this.gl.deleteVertexArray(this.vao);
         this.loaded = false;
     }
+
+    static initShader (gl: WebGL2RenderingContext) {
+        const splatShader = initShaders(gl, "splat-vs", "splat-fs");
+
+        // active ce shader
+        gl.useProgram(splatShader);
+
+        // adresse des variables uniform dans le shader
+        (splatShader as any).positionUniform = gl.getUniformLocation(
+            splatShader,
+            "uPosition"
+        );
+        (splatShader as any).texUniform = gl.getUniformLocation(splatShader, "uTex");
+        (splatShader as any).couleurUniform = gl.getUniformLocation(
+            splatShader,
+            "maCouleur"
+        );
+
+        console.log("splat shader initialized");
+
+        return splatShader;
+    };
 }

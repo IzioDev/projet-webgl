@@ -1,3 +1,5 @@
+import {initShaders} from "../utils/game-utils";
+
 export class Background {
     backgroundShader: WebGLProgram;
     gl: WebGL2RenderingContext;
@@ -31,8 +33,8 @@ export class Background {
 
     loaded: boolean = false;
 
-    constructor(gl: WebGL2RenderingContext,backgroundShader: WebGLProgram) {
-        this.backgroundShader = backgroundShader;
+    constructor(gl: WebGL2RenderingContext) {
+        this.backgroundShader = Background.initShader(gl);
         this.gl = gl;
         this.bindGC();
     }
@@ -106,4 +108,33 @@ export class Background {
         this.gl.deleteVertexArray(this.vao);
         this.loaded = false;
     }
+
+    static initShader(gl: WebGL2RenderingContext) {
+        const backgroundShader = initShaders(gl, "background-vs", "background-fs");
+
+        // active ce shader
+        gl.useProgram(backgroundShader);
+
+        // adresse des variables dans le shader associé
+        (backgroundShader as any).offsetUniform = gl.getUniformLocation(
+            backgroundShader,
+            "uOffset"
+        );
+        (backgroundShader as any).amplitudeUniform = gl.getUniformLocation(
+            backgroundShader,
+            "uAmplitude"
+        );
+        (backgroundShader as any).frequencyUniform = gl.getUniformLocation(
+            backgroundShader,
+            "uFrequency"
+        );
+        (backgroundShader as any).persistenceUniform = gl.getUniformLocation(
+            backgroundShader,
+            "uPersistence"
+        );
+
+        console.log("background shader initialized");
+
+        return backgroundShader;
+    };
 }

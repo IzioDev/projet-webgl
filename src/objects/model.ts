@@ -1,6 +1,12 @@
 import {mat4, vec3} from "gl-matrix";
+import {initShaders} from "../utils/game-utils";
+import {KeyHandler} from "./key-handler";
 
-export class Model {
+
+export class Model extends KeyHandler {
+    id: string;
+
+
     textureUri: string;
     gl: WebGL2RenderingContext;
     shader: WebGLProgram;
@@ -53,19 +59,29 @@ export class Model {
     viewMatrix;
     projMatrix;
 
-    constructor(gl: WebGL2RenderingContext, splatShader: WebGLProgram, textureUri: string) {
+    constructor(gl: WebGL2RenderingContext, textureUri: string, id: string) {
+        super();
+
         this.gl = gl;
         this.textureUri = textureUri;
-        this.shader = splatShader;
+        this.shader = Model.initShader(gl);
+        this.id = id;
 
-        this.vertexBuffer = gl.createBuffer();
+        const _vertexBuffer = gl.createBuffer();
+        if (_vertexBuffer === null) {
+            throw new Error(`Cannot create buffer`);
+        }
+        this.vertexBuffer = _vertexBuffer;
         (this.vertexBuffer as any).itemSize = 0;
         (this.vertexBuffer as any).numItems = 0;
 
-        this.normalBuffer = gl.createBuffer();
+        const _normalBuffer = gl.createBuffer();
+        if (_normalBuffer === null) {
+            throw new Error(`Cannot create buffer`);
+        }
+        this.normalBuffer = _normalBuffer;
         (this.normalBuffer as any).itemSize = 0;
         (this.normalBuffer as any).numItems = 0;
-
 
         this.loaded = false;
     }
@@ -360,4 +376,37 @@ export class Model {
         this.gl.deleteVertexArray(this.vao);
         this.loaded = false;
     }
+
+
+
+    static initShader (gl: WebGL2RenderingContext) {
+        const modelShader = initShaders(gl, "model-vs", "model-fs");
+
+        // active ce shader
+        gl.useProgram(modelShader);
+
+        // adresse des variables de type uniform dans le shader
+        (modelShader as any).modelMatrixUniform = gl.getUniformLocation(
+            modelShader,
+            "uModelMatrix"
+        );
+        (modelShader as any).viewMatrixUniform = gl.getUniformLocation(
+            modelShader,
+            "uViewMatrix"
+        );
+        (modelShader as any).projMatrixUniform = gl.getUniformLocation(
+            modelShader,
+            "uProjMatrix"
+        );
+
+        //couleur obj
+        (modelShader as any).kdUniform = gl.getUniformLocation(modelShader, "ukd");
+
+        //lumiere
+        (modelShader as any).lightUniform = gl.getUniformLocation(modelShader, "ul");
+
+        console.log("model shader initialized");
+        return modelShader;
+    };
+
 }
