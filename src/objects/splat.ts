@@ -1,6 +1,7 @@
-import {initShaders} from "../utils/game-utils";
+import {initShaders, isPowerOf2} from "../utils/game-utils";
+import {KeyHandler} from "./key-handler";
 
-export class Splat {
+export class Splat extends KeyHandler {
     id: string;
     texture: WebGLTexture;
     gl: WebGL2RenderingContext;
@@ -38,12 +39,14 @@ export class Splat {
 
     loaded = false;
 
-    constructor(gl: WebGL2RenderingContext, splatShader: WebGLProgram, texture: WebGLTexture, id: string) {
-        Splat.initShader(gl);
-        this.id = id;
+    constructor(gl: WebGL2RenderingContext, textureUri: string, id: string) {
+        super();
         this.gl = gl;
-        this.texture = texture;
-        this.shader = splatShader;
+
+        this.texture = this.initTexture(textureUri);
+        this.shader = Splat.initShader(gl);
+
+        this.id = id;
 
         this.bindToGC();
     }
@@ -99,7 +102,7 @@ export class Splat {
         this.position = [x,y,z];
     }
 
-    setParameters (elapsed) {
+    setParameters (elapsed: number) {
         this.time += 0.01*elapsed;
         // on peut animer les splats ici. Par exemple :
         //this.position[1] += 0.03; // permet de déplacer le splat vers le haut au fil du temps
@@ -160,5 +163,67 @@ export class Splat {
         console.log("splat shader initialized");
 
         return splatShader;
+    };
+
+    initTexture = (
+        filePath: string,
+    ): WebGLTexture => {
+        const {gl} = this;
+
+        const texture = gl.createTexture();
+
+        if (texture === null) {
+            throw new Error("Cannot create texture");
+        }
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        // Default texture during the real texture download
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const width = 1;
+        const height = 1;
+        const border = 0;
+        const srcFormat = gl.RGBA;
+        const srcType = gl.UNSIGNED_BYTE;
+        const pixel = new Uint8Array([0, 0, 255, 255]);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            level,
+            internalFormat,
+            width,
+            height,
+            border,
+            srcFormat,
+            srcType,
+            pixel
+        );
+        const image = new Image();
+
+        image.onload = function() {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                level,
+                internalFormat,
+                srcFormat,
+                srcType,
+                image
+            );
+
+            if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+                gl.generateMipmap(gl.TEXTURE_2D);
+            } else {
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            }
+
+            console.log("loaded a texture with real URI.");
+        };
+
+        image.src = filePath;
+
+        return texture;
     };
 }

@@ -63,3 +63,20 @@ export const initShaders = (
 
     return shaderProgram;
 };
+
+export const initWebGL = (canvas: HTMLCanvasElement): WebGL2RenderingContext => {
+
+    const gl = canvas.getContext("webgl2");
+
+    if (gl === null) {
+        throw new Error("Cannot create a WebGL2 rendering context");
+    }
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    console.log("initiated webgl on canvas.");
+    return gl;
+};
+
+export const isPowerOf2 = (value: number) => {
+    return (value & (value - 1)) == 0;
+};

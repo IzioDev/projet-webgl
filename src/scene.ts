@@ -14,6 +14,8 @@ export class Scene {
   models: Model[] = [];
   splats: Splat[] = [];
 
+  onTickHandlers: Function[] = [];
+
   currentlyPressed: any = {};
 
   lastTime = 0;
@@ -49,6 +51,14 @@ export class Scene {
     });
   }
 
+  addSplatFromUri(splatUri: string, id: string): Promise<Splat> {
+    return new Promise((res, _) => {
+      const splat = new Splat(this.gl, splatUri, id);
+      this.splats.push(splat);
+      res(splat);
+    });
+  }
+
   tick() {
     setTimeout(() => {
       window.requestAnimationFrame(this.tick.bind(this));
@@ -66,23 +76,6 @@ export class Scene {
         }
       })
     });
-
-    if (this.currentlyPressed[77]) {
-      // M
-      // juste un test pour supprimer un splat (tir)
-      this.splat.clear();
-    }
-
-    if (this.currentlyPressed[32]) {
-      // SPACE
-      // exemple: comment positionner un splat devant le vaisseau
-      var p = this.model.getBBox(); // boite englobante du vaisseau sur l'�cran
-      var x = (p[0][0] + p[1][0]) / 2;
-      var y = p[1][1];
-      var z = p[1][2] + 0.005; // profondeur du splat (juste derri�re le vaisseau)
-
-      this.splat.setPosition(x, y, z);
-    }
   }
 
   drawScene() {
@@ -99,9 +92,11 @@ export class Scene {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // dessin du fond (d�commenter pour travailler dessus)
-    gl.useProgram(this.background.getShader());
-    this.background.sendUniformVariables();
-    this.background.draw();
+    if (this.background) {
+      gl.useProgram(this.background.getShader());
+      this.background.sendUniformVariables();
+      this.background.draw();
+    }
 
     // Draw all models :
     this.models.forEach(model => {
@@ -138,5 +133,18 @@ export class Scene {
 
     }
     this.lastTime = timeNow;
+  }
+
+  getTime() {
+    return this.lastTime;
+  }
+
+  addOnTickHandler(handler: Function) {
+    this.onTickHandlers.push(handler);
+    return this.onTickHandlers.length - 1;
+  }
+
+  removeOnTickHandler(id: number) {
+    this.onTickHandlers.splice(id, 1);
   }
 }

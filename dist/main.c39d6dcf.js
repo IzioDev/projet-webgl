@@ -117,185 +117,7 @@ parcelRequire = (function (modules, cache, entry, globalName) {
   }
 
   return newRequire;
-})({"utils/game-utils.ts":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-exports.getShader = function (gl, id) {
-  var shaderScript = document.getElementById(id);
-
-  if (!shaderScript) {
-    throw new Error("No shader script found for id " + id);
-  }
-
-  var str = "";
-  var k = shaderScript.firstChild;
-
-  while (k) {
-    if (k.nodeType == 3) {
-      str += k.textContent;
-    }
-
-    k = k.nextSibling;
-  }
-
-  var shader;
-
-  if (shaderScript.type == "x-shader/x-fragment") {
-    shader = gl.createShader(gl.FRAGMENT_SHADER);
-  } else if (shaderScript.type == "x-shader/x-vertex") {
-    shader = gl.createShader(gl.VERTEX_SHADER);
-  }
-
-  if (!shader) {
-    throw new Error("Cannot create shader for script : " + shaderScript.type);
-  }
-
-  gl.shaderSource(shader, str);
-  gl.compileShader(shader);
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    alert(gl.getShaderInfoLog(shader));
-    throw new Error("Error while compiling shader : " + shaderScript.type);
-  }
-
-  return shader;
-};
-
-exports.initShaders = function (gl, vertexId, fsId) {
-  // recupere les vertex et fragment shaders
-  var fragmentShader = exports.getShader(gl, fsId);
-  var vertexShader = exports.getShader(gl, vertexId); // cree le programme et lui associe les vertex/fragments
-
-  var shaderProgram = gl.createProgram();
-
-  if (shaderProgram === null) {
-    throw new Error("shader program is null");
-  }
-
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
-
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    alert("Could not initialise shaders");
-  }
-
-  return shaderProgram;
-};
-},{}],"objects/background.ts":[function(require,module,exports) {
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-
-var game_utils_1 = require("../utils/game-utils");
-
-var Background =
-/** @class */
-function () {
-  function Background(gl) {
-    this.vertices = [-1.0, -1.0, 0.9999, 1.0, -1.0, 0.9999, 1.0, 1.0, 0.9999, -1.0, 1.0, 0.9999];
-    this.coords = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0];
-    this.tri = [0, 1, 2, 0, 2, 3];
-    this.timer = 0.0;
-    this.offset = [0.0, 0.0];
-    this.amplitude = 3.0;
-    this.frequency = 5.0;
-    this.persistence = 0.45;
-    this.loaded = false;
-    this.backgroundShader = Background.initShader(gl);
-    this.gl = gl;
-    this.bindGC();
-  }
-
-  Background.prototype.initParameter = function () {
-    // paramètres envoyés au shader pour générer le fond
-    this.timer = 0.0;
-    this.offset = [0.0, 0.0];
-    this.amplitude = 3.0;
-    this.frequency = 5.0;
-    this.persistence = 0.45;
-  };
-
-  Background.prototype.bindGC = function () {
-    this.vao = this.gl.createVertexArray();
-    this.gl.bindVertexArray(this.vao); // cree un nouveau buffer sur le GPU et l'active
-
-    this.vertexBuffer = this.gl.createBuffer();
-    this.vertexBuffer.itemSize = 3;
-    this.vertexBuffer.numItems = 4;
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
-    this.gl.enableVertexAttribArray(0);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.vertices), this.gl.STATIC_DRAW);
-    this.gl.vertexAttribPointer(0, this.vertexBuffer.itemSize, this.gl.FLOAT, false, 0, 0); // meme principe pour les coords de texture
-
-    this.coordBuffer = this.gl.createBuffer();
-    this.coordBuffer.itemSize = 2;
-    this.coordBuffer.numItems = 4;
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.coordBuffer);
-    this.gl.enableVertexAttribArray(1);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.coords), this.gl.STATIC_DRAW);
-    this.gl.vertexAttribPointer(1, this.coordBuffer.itemSize, this.gl.FLOAT, false, 0, 0); // creation des faces du cube (les triangles) avec les indices vers les sommets
-
-    this.triangles = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.triangles);
-    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), this.gl.STATIC_DRAW);
-    this.triangles.numItems = 6;
-    this.gl.bindVertexArray(null);
-    console.log("background initialized");
-  };
-
-  Background.prototype.getShader = function () {
-    return this.backgroundShader;
-  };
-
-  Background.prototype.sendUniformVariables = function () {
-    // fonction appelée avant le dessin : envoie de toutes les variables au shader
-    this.gl.uniform2fv(this.backgroundShader.offsetUniform, this.offset);
-    this.gl.uniform1f(this.backgroundShader.amplitudeUniform, this.amplitude);
-    this.gl.uniform1f(this.backgroundShader.frequencyUniform, this.frequency);
-    this.gl.uniform1f(this.backgroundShader.persistenceUniform, this.persistence);
-  };
-
-  Background.prototype.draw = function () {
-    // cette fonction dessine la géométrie du background (ici 2 triangles stockés dans les 2 buffers)
-    this.gl.bindVertexArray(this.vao);
-    this.gl.drawElements(this.gl.TRIANGLES, this.triangles.numItems, this.gl.UNSIGNED_SHORT, 0);
-    this.gl.bindVertexArray(null);
-  };
-
-  Background.prototype.clear = function () {
-    // clear all GPU memory
-    this.gl.deleteBuffer(this.vertexBuffer);
-    this.gl.deleteBuffer(this.coordBuffer);
-    this.gl.deleteVertexArray(this.vao);
-    this.loaded = false;
-  };
-
-  Background.initShader = function (gl) {
-    var backgroundShader = game_utils_1.initShaders(gl, "background-vs", "background-fs"); // active ce shader
-
-    gl.useProgram(backgroundShader); // adresse des variables dans le shader associé
-
-    backgroundShader.offsetUniform = gl.getUniformLocation(backgroundShader, "uOffset");
-    backgroundShader.amplitudeUniform = gl.getUniformLocation(backgroundShader, "uAmplitude");
-    backgroundShader.frequencyUniform = gl.getUniformLocation(backgroundShader, "uFrequency");
-    backgroundShader.persistenceUniform = gl.getUniformLocation(backgroundShader, "uPersistence");
-    console.log("background shader initialized");
-    return backgroundShader;
-  };
-
-  ;
-  return Background;
-}();
-
-exports.Background = Background;
-},{"../utils/game-utils":"utils/game-utils.ts"}],"../node_modules/gl-matrix/esm/common.js":[function(require,module,exports) {
+})({"../node_modules/gl-matrix/esm/common.js":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -8297,7 +8119,92 @@ exports.vec4 = vec4;
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
-},{"./common.js":"../node_modules/gl-matrix/esm/common.js","./mat2.js":"../node_modules/gl-matrix/esm/mat2.js","./mat2d.js":"../node_modules/gl-matrix/esm/mat2d.js","./mat3.js":"../node_modules/gl-matrix/esm/mat3.js","./mat4.js":"../node_modules/gl-matrix/esm/mat4.js","./quat.js":"../node_modules/gl-matrix/esm/quat.js","./quat2.js":"../node_modules/gl-matrix/esm/quat2.js","./vec2.js":"../node_modules/gl-matrix/esm/vec2.js","./vec3.js":"../node_modules/gl-matrix/esm/vec3.js","./vec4.js":"../node_modules/gl-matrix/esm/vec4.js"}],"objects/key-handler.ts":[function(require,module,exports) {
+},{"./common.js":"../node_modules/gl-matrix/esm/common.js","./mat2.js":"../node_modules/gl-matrix/esm/mat2.js","./mat2d.js":"../node_modules/gl-matrix/esm/mat2d.js","./mat3.js":"../node_modules/gl-matrix/esm/mat3.js","./mat4.js":"../node_modules/gl-matrix/esm/mat4.js","./quat.js":"../node_modules/gl-matrix/esm/quat.js","./quat2.js":"../node_modules/gl-matrix/esm/quat2.js","./vec2.js":"../node_modules/gl-matrix/esm/vec2.js","./vec3.js":"../node_modules/gl-matrix/esm/vec3.js","./vec4.js":"../node_modules/gl-matrix/esm/vec4.js"}],"utils/game-utils.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+exports.getShader = function (gl, id) {
+  var shaderScript = document.getElementById(id);
+
+  if (!shaderScript) {
+    throw new Error("No shader script found for id " + id);
+  }
+
+  var str = "";
+  var k = shaderScript.firstChild;
+
+  while (k) {
+    if (k.nodeType == 3) {
+      str += k.textContent;
+    }
+
+    k = k.nextSibling;
+  }
+
+  var shader;
+
+  if (shaderScript.type == "x-shader/x-fragment") {
+    shader = gl.createShader(gl.FRAGMENT_SHADER);
+  } else if (shaderScript.type == "x-shader/x-vertex") {
+    shader = gl.createShader(gl.VERTEX_SHADER);
+  }
+
+  if (!shader) {
+    throw new Error("Cannot create shader for script : " + shaderScript.type);
+  }
+
+  gl.shaderSource(shader, str);
+  gl.compileShader(shader);
+
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    alert(gl.getShaderInfoLog(shader));
+    throw new Error("Error while compiling shader : " + shaderScript.type);
+  }
+
+  return shader;
+};
+
+exports.initShaders = function (gl, vertexId, fsId) {
+  // recupere les vertex et fragment shaders
+  var fragmentShader = exports.getShader(gl, fsId);
+  var vertexShader = exports.getShader(gl, vertexId); // cree le programme et lui associe les vertex/fragments
+
+  var shaderProgram = gl.createProgram();
+
+  if (shaderProgram === null) {
+    throw new Error("shader program is null");
+  }
+
+  gl.attachShader(shaderProgram, vertexShader);
+  gl.attachShader(shaderProgram, fragmentShader);
+  gl.linkProgram(shaderProgram);
+
+  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+    alert("Could not initialise shaders");
+  }
+
+  return shaderProgram;
+};
+
+exports.initWebGL = function (canvas) {
+  var gl = canvas.getContext("webgl2");
+
+  if (gl === null) {
+    throw new Error("Cannot create a WebGL2 rendering context");
+  }
+
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  console.log("initiated webgl on canvas.");
+  return gl;
+};
+
+exports.isPowerOf2 = function (value) {
+  return (value & value - 1) == 0;
+};
+},{}],"objects/key-handler.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -8868,7 +8775,218 @@ function (_super) {
 }(key_handler_1.KeyHandler);
 
 exports.Model = Model;
-},{"gl-matrix":"../node_modules/gl-matrix/esm/index.js","../utils/game-utils":"utils/game-utils.ts","./key-handler":"objects/key-handler.ts"}],"scene.ts":[function(require,module,exports) {
+},{"gl-matrix":"../node_modules/gl-matrix/esm/index.js","../utils/game-utils":"utils/game-utils.ts","./key-handler":"objects/key-handler.ts"}],"objects/splat.ts":[function(require,module,exports) {
+"use strict";
+
+var __extends = this && this.__extends || function () {
+  var _extendStatics = function extendStatics(d, b) {
+    _extendStatics = Object.setPrototypeOf || {
+      __proto__: []
+    } instanceof Array && function (d, b) {
+      d.__proto__ = b;
+    } || function (d, b) {
+      for (var p in b) {
+        if (b.hasOwnProperty(p)) d[p] = b[p];
+      }
+    };
+
+    return _extendStatics(d, b);
+  };
+
+  return function (d, b) {
+    _extendStatics(d, b);
+
+    function __() {
+      this.constructor = d;
+    }
+
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+}();
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var game_utils_1 = require("../utils/game-utils");
+
+var key_handler_1 = require("./key-handler");
+
+var Splat =
+/** @class */
+function (_super) {
+  __extends(Splat, _super);
+
+  function Splat(gl, textureUri, id) {
+    var _this = _super.call(this) || this;
+
+    _this.width = 0.2;
+    _this.height = 0.2;
+    _this.position = [0.0, 0.0, 0.0];
+    _this.couleur = [1, 0, 0];
+    _this.time = 0.0;
+    _this.wo2 = 0.5 * _this.width;
+    _this.ho2 = 0.5 * _this.height;
+    _this.vertices = [-_this.wo2, -_this.ho2, -0.8, _this.wo2, -_this.ho2, -0.8, _this.wo2, _this.ho2, -0.8, -_this.wo2, _this.ho2, -0.8];
+    _this.coords = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0];
+    _this.tri = [0, 1, 2, 0, 2, 3];
+    _this.loaded = false;
+
+    _this.initTexture = function (filePath) {
+      var gl = _this.gl;
+      var texture = gl.createTexture();
+
+      if (texture === null) {
+        throw new Error("Cannot create texture");
+      }
+
+      gl.bindTexture(gl.TEXTURE_2D, texture); // Default texture during the real texture download
+
+      var level = 0;
+      var internalFormat = gl.RGBA;
+      var width = 1;
+      var height = 1;
+      var border = 0;
+      var srcFormat = gl.RGBA;
+      var srcType = gl.UNSIGNED_BYTE;
+      var pixel = new Uint8Array([0, 0, 255, 255]);
+      gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, srcFormat, srcType, pixel);
+      var image = new Image();
+
+      image.onload = function () {
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
+
+        if (game_utils_1.isPowerOf2(image.width) && game_utils_1.isPowerOf2(image.height)) {
+          gl.generateMipmap(gl.TEXTURE_2D);
+        } else {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
+
+        console.log("loaded a texture with real URI.");
+      };
+
+      image.src = filePath;
+      return texture;
+    };
+
+    _this.gl = gl;
+    _this.texture = _this.initTexture(textureUri);
+    _this.shader = Splat.initShader(gl);
+    _this.id = id;
+
+    _this.bindToGC();
+
+    return _this;
+  }
+
+  Splat.prototype.bindToGC = function () {
+    var gl = this.gl; // cree un nouveau buffer sur le GPU et l'active
+
+    this.vertexBuffer = gl.createBuffer();
+    this.vertexBuffer.itemSize = 3;
+    this.vertexBuffer.numItems = 4;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+    gl.enableVertexAttribArray(0);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, this.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0); // meme principe pour les coords
+
+    this.coordBuffer = gl.createBuffer();
+    this.coordBuffer.itemSize = 2;
+    this.coordBuffer.numItems = 4;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.coordBuffer);
+    gl.enableVertexAttribArray(1);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.coords), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(1, this.coordBuffer.itemSize, gl.FLOAT, false, 0, 0); // creation des faces du cube (les triangles) avec les indices vers les sommets
+
+    this.triangles = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.triangles);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), gl.STATIC_DRAW);
+    this.triangles.numItems = 6;
+    gl.bindVertexArray(null);
+    this.loaded = true;
+    console.log("splat initialized");
+  };
+
+  Splat.prototype.getShader = function () {
+    return this.shader;
+  };
+
+  Splat.prototype.initParameters = function () {
+    // paramètres par défaut d'un splat (taille, position, couleur)
+    this.width = 0.2;
+    this.height = 0.2;
+    this.position = [0.0, 0.0, 0.0];
+    this.couleur = [1, 0, 0];
+    this.time = 0.0;
+  };
+
+  Splat.prototype.setPosition = function (x, y, z) {
+    this.position = [x, y, z];
+  };
+
+  Splat.prototype.setParameters = function (elapsed) {
+    this.time += 0.01 * elapsed; // on peut animer les splats ici. Par exemple :
+    //this.position[1] += 0.03; // permet de déplacer le splat vers le haut au fil du temps
+    //this.position[0] += 0.02*Math.sin(this.time); // permet de déplacer le splat sur l'axe X
+  };
+
+  Splat.prototype.sendUniformVariables = function () {
+    // envoie des variables au shader (position du splat, couleur, texture)
+    // fonction appelée à chaque frame, avant le dessin du splat
+    if (this.loaded) {
+      var _a = this,
+          gl = _a.gl,
+          shader = _a.shader,
+          texture = _a.texture;
+
+      gl.uniform3fv(shader.positionUniform, this.position);
+      gl.uniform3fv(shader.couleurUniform, this.couleur); // how to send a texture:
+
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.uniform1i(shader.texUniform, 0);
+    }
+  };
+
+  Splat.prototype.draw = function () {
+    // dessin du splat
+    if (this.loaded) {
+      var gl = this.gl;
+      gl.bindVertexArray(this.vao);
+      gl.drawElements(gl.TRIANGLES, this.triangles.numItems, gl.UNSIGNED_SHORT, 0);
+      gl.bindVertexArray(null);
+    }
+  };
+
+  Splat.prototype.clear = function () {
+    // clear all GPU memory
+    this.gl.deleteBuffer(this.vertexBuffer);
+    this.gl.deleteBuffer(this.coordBuffer);
+    this.gl.deleteVertexArray(this.vao);
+    this.loaded = false;
+  };
+
+  Splat.initShader = function (gl) {
+    var splatShader = game_utils_1.initShaders(gl, "splat-vs", "splat-fs"); // active ce shader
+
+    gl.useProgram(splatShader); // adresse des variables uniform dans le shader
+
+    splatShader.positionUniform = gl.getUniformLocation(splatShader, "uPosition");
+    splatShader.texUniform = gl.getUniformLocation(splatShader, "uTex");
+    splatShader.couleurUniform = gl.getUniformLocation(splatShader, "maCouleur");
+    console.log("splat shader initialized");
+    return splatShader;
+  };
+
+  ;
+  return Splat;
+}(key_handler_1.KeyHandler);
+
+exports.Splat = Splat;
+},{"../utils/game-utils":"utils/game-utils.ts","./key-handler":"objects/key-handler.ts"}],"scene.ts":[function(require,module,exports) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -8876,6 +8994,8 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 var model_1 = require("./objects/model");
+
+var splat_1 = require("./objects/splat");
 
 var Scene =
 /** @class */
@@ -8887,6 +9007,7 @@ function () {
     this.loadedSplats = [];
     this.models = [];
     this.splats = [];
+    this.onTickHandlers = [];
     this.currentlyPressed = {};
     this.lastTime = 0;
     this.gl = gl;
@@ -8920,6 +9041,18 @@ function () {
     });
   };
 
+  Scene.prototype.addSplatFromUri = function (splatUri, id) {
+    var _this = this;
+
+    return new Promise(function (res, _) {
+      var splat = new splat_1.Splat(_this.gl, splatUri, id);
+
+      _this.splats.push(splat);
+
+      res(splat);
+    });
+  };
+
   Scene.prototype.tick = function () {
     var _this = this;
 
@@ -8944,24 +9077,6 @@ function () {
         }
       });
     });
-
-    if (this.currentlyPressed[77]) {
-      // M
-      // juste un test pour supprimer un splat (tir)
-      this.splat.clear();
-    }
-
-    if (this.currentlyPressed[32]) {
-      // SPACE
-      // exemple: comment positionner un splat devant le vaisseau
-      var p = this.model.getBBox(); // boite englobante du vaisseau sur l'�cran
-
-      var x = (p[0][0] + p[1][0]) / 2;
-      var y = p[1][1];
-      var z = p[1][2] + 0.005; // profondeur du splat (juste derri�re le vaisseau)
-
-      this.splat.setPosition(x, y, z);
-    }
   };
 
   Scene.prototype.drawScene = function () {
@@ -8971,9 +9086,12 @@ function () {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // dessin du fond (d�commenter pour travailler dessus)
 
-    gl.useProgram(this.background.getShader());
-    this.background.sendUniformVariables();
-    this.background.draw(); // Draw all models :
+    if (this.background) {
+      gl.useProgram(this.background.getShader());
+      this.background.sendUniformVariables();
+      this.background.draw();
+    } // Draw all models :
+
 
     this.models.forEach(function (model) {
       gl.useProgram(model.getShader());
@@ -9007,14 +9125,27 @@ function () {
     this.lastTime = timeNow;
   };
 
+  Scene.prototype.getTime = function () {
+    return this.lastTime;
+  };
+
+  Scene.prototype.addOnTickHandler = function (handler) {
+    this.onTickHandlers.push(handler);
+    return this.onTickHandlers.length - 1;
+  };
+
+  Scene.prototype.removeOnTickHandler = function (id) {
+    this.onTickHandlers.splice(id, 1);
+  };
+
   return Scene;
 }();
 
 exports.Scene = Scene;
-},{"./objects/model":"objects/model.ts"}],"assets/missile.png":[function(require,module,exports) {
-module.exports = "/missile.bb5f239e.png";
-},{}],"assets/plane.obj":[function(require,module,exports) {
+},{"./objects/model":"objects/model.ts","./objects/splat":"objects/splat.ts"}],"assets/plane.obj":[function(require,module,exports) {
 module.exports = "/plane.f45d05b1.obj";
+},{}],"assets/missile.png":[function(require,module,exports) {
+module.exports = "/missile.bb5f239e.png";
 },{}],"main.ts":[function(require,module,exports) {
 "use strict";
 
@@ -9165,76 +9296,25 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var background_1 = require("./objects/background");
-
 var scene_1 = require("./scene");
 
-var initWebGL = function initWebGL(canvas) {
-  var gl = canvas.getContext("webgl2");
+var game_utils_1 = require("./utils/game-utils"); // @ts-ignore
 
-  if (gl === null) {
-    throw new Error("Cannot create a WebGL2 rendering context");
-  }
 
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  console.log("initiated webgl on canvas.");
-  return gl;
-};
+var planeObjUri = require("./assets/plane.obj"); // @ts-ignore
 
-var isPowerOf2 = function isPowerOf2(value) {
-  return (value & value - 1) == 0;
-};
 
-var initTexture = function initTexture(filePath, gl) {
-  var texture = gl.createTexture();
-
-  if (texture === null) {
-    throw new Error("Cannot create texture");
-  }
-
-  gl.bindTexture(gl.TEXTURE_2D, texture); // Default texture during the real texture download
-
-  var level = 0;
-  var internalFormat = gl.RGBA;
-  var width = 1;
-  var height = 1;
-  var border = 0;
-  var srcFormat = gl.RGBA;
-  var srcType = gl.UNSIGNED_BYTE;
-  var pixel = new Uint8Array([0, 0, 255, 255]);
-  gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, srcFormat, srcType, pixel);
-  var image = new Image();
-
-  image.onload = function () {
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
-
-    if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-      gl.generateMipmap(gl.TEXTURE_2D);
-    } else {
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    }
-
-    console.log("loaded a texture with real URI.");
-  };
-
-  image.src = filePath;
-  return texture;
-};
+var missileTextureImageUri = require("./assets/missile.png");
 
 document.addEventListener("DOMContentLoaded", function () {
   return __awaiter(void 0, void 0, void 0, function () {
-    var canvas, gl, missileTextureImageURI, missileTexture, planeObjUri, scene;
+    var canvas, gl, lastTimeSpawnMissile, scene;
     return __generator(this, function (_a) {
       canvas = document.getElementById("super-soccer-canvas");
-      gl = initWebGL(canvas);
-      missileTextureImageURI = require("./assets/missile.png");
-      missileTexture = initTexture(missileTextureImageURI, gl);
-      planeObjUri = require("./assets/plane.obj");
-      scene = new scene_1.Scene(gl);
-      scene.setBackground(new background_1.Background(gl));
+      gl = game_utils_1.initWebGL(canvas);
+      lastTimeSpawnMissile = 0;
+      scene = new scene_1.Scene(gl); // scene.setBackground(new Background(gl));
+
       scene.addModelFromObjectUri(planeObjUri, "plane-1").then(function (model) {
         model.addKeyHandler(68, function () {
           model.move(1, 0);
@@ -9247,6 +9327,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         model.addKeyHandler(83, function () {
           model.move(0, -1);
+        });
+        model.addKeyHandler(32, function () {
+          if (scene.getTime() - lastTimeSpawnMissile > 1000) {
+            lastTimeSpawnMissile = scene.getTime();
+            var bb = model.getBBox();
+            var x_1 = (bb[0][0] + bb[1][0]) / 2;
+            var y_1 = bb[1][1];
+            var z_1 = bb[1][2] + 0.005;
+            scene.addSplatFromUri(missileTextureImageUri, "splat-1").then(function (splat) {
+              splat.setPosition(x_1, y_1, z_1);
+              splat.addKeyHandler(77, function () {
+                splat.clear();
+              });
+            });
+          }
         });
       }); // la couleur de fond sera grise fonc�e
 
@@ -9262,7 +9357,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
-},{"./objects/background":"objects/background.ts","./scene":"scene.ts","./assets/missile.png":"assets/missile.png","./assets/plane.obj":"assets/plane.obj"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./scene":"scene.ts","./utils/game-utils":"utils/game-utils.ts","./assets/plane.obj":"assets/plane.obj","./assets/missile.png":"assets/missile.png"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
