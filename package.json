@@ -1,0 +1,21 @@
+{
+  "name": "extended-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "parcel src/index.html",
+    "build": "parcel build src/index.html",
+    "serve": "parcel serve src/index.html"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/gl-matrix": "^2.4.5",
+    "gl-matrix": "^3.2.1",
+    "parcel-bundler": "^1.12.4"
+  },
+  "devDependencies": {
+    "typescript": "^3.7.5"
+  }
+}
