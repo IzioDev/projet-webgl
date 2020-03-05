@@ -141,7 +141,9 @@ export class Scene {
         splat.setParameters(elapsed);
       });
 
-      // this.background.setParameters(elapsed);
+      if (this.background) {
+        this.background.setParameters(elapsed);
+      }
 
     }
     this.lastTime = timeNow;

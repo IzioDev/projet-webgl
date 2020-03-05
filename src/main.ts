@@ -1,5 +1,6 @@
 import { Scene } from "./scene";
 import { initWebGL } from "./utils/game-utils";
+import {Background} from "./objects/background";
 // @ts-ignore
 const planeObjUri = require("./assets/plane.obj");
 // @ts-ignore
@@ -15,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let lastTimeSpawnMissile = 0;
 
   const scene = new Scene(gl);
-  // scene.setBackground(new Background(gl));
+  scene.setBackground(new Background(gl));
   scene.addModelFromObjectUri(planeObjUri, "plane-1").then(model => {
     model.addKeyHandler(68, () => {
       model.move(1, 0);

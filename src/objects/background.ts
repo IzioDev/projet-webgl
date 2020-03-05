@@ -137,4 +137,8 @@ export class Background {
 
         return backgroundShader;
     };
+
+    setParameters(elapsed: number) {
+        this.offset[1] += 0.0005 * elapsed
+    }
 }

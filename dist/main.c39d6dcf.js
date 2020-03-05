@@ -9165,7 +9165,11 @@ function () {
       });
       this.splats.forEach(function (splat) {
         splat.setParameters(elapsed_1);
-      }); // this.background.setParameters(elapsed);
+      });
+
+      if (this.background) {
+        this.background.setParameters(elapsed_1);
+      }
     }
 
     this.lastTime = timeNow;
@@ -9188,7 +9192,121 @@ function () {
 }();
 
 exports.Scene = Scene;
-},{"./objects/model":"objects/model.ts","./objects/splat":"objects/splat.ts"}],"assets/plane.obj":[function(require,module,exports) {
+},{"./objects/model":"objects/model.ts","./objects/splat":"objects/splat.ts"}],"objects/background.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var game_utils_1 = require("../utils/game-utils");
+
+var Background =
+/** @class */
+function () {
+  function Background(gl) {
+    this.vertices = [-1.0, -1.0, 0.9999, 1.0, -1.0, 0.9999, 1.0, 1.0, 0.9999, -1.0, 1.0, 0.9999];
+    this.coords = [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0];
+    this.tri = [0, 1, 2, 0, 2, 3];
+    this.timer = 0.0;
+    this.offset = [0.0, 0.0];
+    this.amplitude = 3.0;
+    this.frequency = 5.0;
+    this.persistence = 0.45;
+    this.loaded = false;
+    this.backgroundShader = Background.initShader(gl);
+    this.gl = gl;
+    this.bindGC();
+  }
+
+  Background.prototype.initParameter = function () {
+    // paramètres envoyés au shader pour générer le fond
+    this.timer = 0.0;
+    this.offset = [0.0, 0.0];
+    this.amplitude = 3.0;
+    this.frequency = 5.0;
+    this.persistence = 0.45;
+  };
+
+  Background.prototype.bindGC = function () {
+    this.vao = this.gl.createVertexArray();
+    this.gl.bindVertexArray(this.vao); // cree un nouveau buffer sur le GPU et l'active
+
+    this.vertexBuffer = this.gl.createBuffer();
+    this.vertexBuffer.itemSize = 3;
+    this.vertexBuffer.numItems = 4;
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+    this.gl.enableVertexAttribArray(0);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.vertices), this.gl.STATIC_DRAW);
+    this.gl.vertexAttribPointer(0, this.vertexBuffer.itemSize, this.gl.FLOAT, false, 0, 0); // meme principe pour les coords de texture
+
+    this.coordBuffer = this.gl.createBuffer();
+    this.coordBuffer.itemSize = 2;
+    this.coordBuffer.numItems = 4;
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.coordBuffer);
+    this.gl.enableVertexAttribArray(1);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.coords), this.gl.STATIC_DRAW);
+    this.gl.vertexAttribPointer(1, this.coordBuffer.itemSize, this.gl.FLOAT, false, 0, 0); // creation des faces du cube (les triangles) avec les indices vers les sommets
+
+    this.triangles = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.triangles);
+    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), this.gl.STATIC_DRAW);
+    this.triangles.numItems = 6;
+    this.gl.bindVertexArray(null);
+    console.log("background initialized");
+  };
+
+  Background.prototype.getShader = function () {
+    return this.backgroundShader;
+  };
+
+  Background.prototype.sendUniformVariables = function () {
+    // fonction appelée avant le dessin : envoie de toutes les variables au shader
+    this.gl.uniform2fv(this.backgroundShader.offsetUniform, this.offset);
+    this.gl.uniform1f(this.backgroundShader.amplitudeUniform, this.amplitude);
+    this.gl.uniform1f(this.backgroundShader.frequencyUniform, this.frequency);
+    this.gl.uniform1f(this.backgroundShader.persistenceUniform, this.persistence);
+  };
+
+  Background.prototype.draw = function () {
+    // cette fonction dessine la géométrie du background (ici 2 triangles stockés dans les 2 buffers)
+    this.gl.bindVertexArray(this.vao);
+    this.gl.drawElements(this.gl.TRIANGLES, this.triangles.numItems, this.gl.UNSIGNED_SHORT, 0);
+    this.gl.bindVertexArray(null);
+  };
+
+  Background.prototype.clear = function () {
+    // clear all GPU memory
+    this.gl.deleteBuffer(this.vertexBuffer);
+    this.gl.deleteBuffer(this.coordBuffer);
+    this.gl.deleteVertexArray(this.vao);
+    this.loaded = false;
+  };
+
+  Background.initShader = function (gl) {
+    var backgroundShader = game_utils_1.initShaders(gl, "background-vs", "background-fs"); // active ce shader
+
+    gl.useProgram(backgroundShader); // adresse des variables dans le shader associé
+
+    backgroundShader.offsetUniform = gl.getUniformLocation(backgroundShader, "uOffset");
+    backgroundShader.amplitudeUniform = gl.getUniformLocation(backgroundShader, "uAmplitude");
+    backgroundShader.frequencyUniform = gl.getUniformLocation(backgroundShader, "uFrequency");
+    backgroundShader.persistenceUniform = gl.getUniformLocation(backgroundShader, "uPersistence");
+    console.log("background shader initialized");
+    return backgroundShader;
+  };
+
+  ;
+
+  Background.prototype.setParameters = function (elapsed) {
+    this.offset[1] += 0.0005 * elapsed;
+  };
+
+  return Background;
+}();
+
+exports.Background = Background;
+},{"../utils/game-utils":"utils/game-utils.ts"}],"assets/plane.obj":[function(require,module,exports) {
 module.exports = "/plane.f45d05b1.obj";
 },{}],"assets/missile.png":[function(require,module,exports) {
 module.exports = "/missile.bb5f239e.png";
@@ -9344,7 +9462,9 @@ Object.defineProperty(exports, "__esModule", {
 
 var scene_1 = require("./scene");
 
-var game_utils_1 = require("./utils/game-utils"); // @ts-ignore
+var game_utils_1 = require("./utils/game-utils");
+
+var background_1 = require("./objects/background"); // @ts-ignore
 
 
 var planeObjUri = require("./assets/plane.obj"); // @ts-ignore
@@ -9359,8 +9479,8 @@ document.addEventListener("DOMContentLoaded", function () {
       canvas = document.getElementById("super-soccer-canvas");
       gl = game_utils_1.initWebGL(canvas);
       lastTimeSpawnMissile = 0;
-      scene = new scene_1.Scene(gl); // scene.setBackground(new Background(gl));
-
+      scene = new scene_1.Scene(gl);
+      scene.setBackground(new background_1.Background(gl));
       scene.addModelFromObjectUri(planeObjUri, "plane-1").then(function (model) {
         model.addKeyHandler(68, function () {
           model.move(1, 0);
@@ -9408,7 +9528,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
-},{"./scene":"scene.ts","./utils/game-utils":"utils/game-utils.ts","./assets/plane.obj":"assets/plane.obj","./assets/missile.png":"assets/missile.png"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./scene":"scene.ts","./utils/game-utils":"utils/game-utils.ts","./objects/background":"objects/background.ts","./assets/plane.obj":"assets/plane.obj","./assets/missile.png":"assets/missile.png"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
