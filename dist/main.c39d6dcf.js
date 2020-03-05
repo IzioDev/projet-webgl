@@ -8204,6 +8204,26 @@ exports.initWebGL = function (canvas) {
 exports.isPowerOf2 = function (value) {
   return (value & value - 1) == 0;
 };
+
+exports.safeCreateBuffer = function (gl) {
+  var buffer = gl.createBuffer();
+
+  if (buffer === null) {
+    throw new Error("Cannot create buffer");
+  }
+
+  return buffer;
+};
+
+exports.safeCreateTexture = function (gl) {
+  var texture = gl.createTexture();
+
+  if (texture === null) {
+    throw new Error("Cannot create texture");
+  }
+
+  return texture;
+};
 },{}],"objects/key-handler.ts":[function(require,module,exports) {
 "use strict";
 
@@ -8832,14 +8852,13 @@ function (_super) {
     _this.tri = [0, 1, 2, 0, 2, 3];
     _this.loaded = false;
 
+    _this._onLeaveViewport = function () {
+      return null;
+    };
+
     _this.initTexture = function (filePath) {
       var gl = _this.gl;
-      var texture = gl.createTexture();
-
-      if (texture === null) {
-        throw new Error("Cannot create texture");
-      }
-
+      var texture = game_utils_1.safeCreateTexture(gl);
       gl.bindTexture(gl.TEXTURE_2D, texture); // Default texture during the real texture download
 
       var level = 0;
@@ -8885,7 +8904,7 @@ function (_super) {
   Splat.prototype.bindToGC = function () {
     var gl = this.gl; // cree un nouveau buffer sur le GPU et l'active
 
-    this.vertexBuffer = gl.createBuffer();
+    this.vertexBuffer = game_utils_1.safeCreateBuffer(gl);
     this.vertexBuffer.itemSize = 3;
     this.vertexBuffer.numItems = 4;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -8893,7 +8912,7 @@ function (_super) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
     gl.vertexAttribPointer(0, this.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0); // meme principe pour les coords
 
-    this.coordBuffer = gl.createBuffer();
+    this.coordBuffer = game_utils_1.safeCreateBuffer(gl);
     this.coordBuffer.itemSize = 2;
     this.coordBuffer.numItems = 4;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.coordBuffer);
@@ -8901,7 +8920,7 @@ function (_super) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.coords), gl.STATIC_DRAW);
     gl.vertexAttribPointer(1, this.coordBuffer.itemSize, gl.FLOAT, false, 0, 0); // creation des faces du cube (les triangles) avec les indices vers les sommets
 
-    this.triangles = gl.createBuffer();
+    this.triangles = game_utils_1.safeCreateBuffer(gl);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.triangles);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), gl.STATIC_DRAW);
     this.triangles.numItems = 6;
@@ -8928,9 +8947,13 @@ function (_super) {
   };
 
   Splat.prototype.setParameters = function (elapsed) {
-    this.time += 0.01 * elapsed; // on peut animer les splats ici. Par exemple :
-    //this.position[1] += 0.03; // permet de déplacer le splat vers le haut au fil du temps
-    //this.position[0] += 0.02*Math.sin(this.time); // permet de déplacer le splat sur l'axe X
+    this.time += 0.01 * elapsed;
+    this.position[1] += 0.03;
+    this.position[0] += 0.02 * Math.sin(this.time);
+
+    if (this.position[1] > 1) {
+      this.onLeaveViewport(this.position);
+    }
   };
 
   Splat.prototype.sendUniformVariables = function () {
@@ -8982,6 +9005,16 @@ function (_super) {
   };
 
   ;
+  Object.defineProperty(Splat.prototype, "onLeaveViewport", {
+    get: function get() {
+      return this._onLeaveViewport;
+    },
+    set: function set(value) {
+      this._onLeaveViewport = value;
+    },
+    enumerable: true,
+    configurable: true
+  });
   return Splat;
 }(key_handler_1.KeyHandler);
 
@@ -9050,6 +9083,12 @@ function () {
       _this.splats.push(splat);
 
       res(splat);
+    });
+  };
+
+  Scene.prototype.removeSplatFromId = function (id) {
+    this.splats = this.splats.filter(function (splat) {
+      return splat.id !== id;
     });
   };
 
@@ -9347,6 +9386,11 @@ document.addEventListener("DOMContentLoaded", function () {
               splat.addKeyHandler(77, function () {
                 splat.clear();
               });
+
+              splat.onLeaveViewport = function (_) {
+                scene.removeSplatFromId(splat.id);
+                splat.clear();
+              };
             });
           }
         });

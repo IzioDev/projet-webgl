@@ -59,6 +59,10 @@ export class Scene {
     });
   }
 
+  removeSplatFromId(id: string) {
+    this.splats = this.splats.filter((splat) => splat.id !== id);
+  }
+
   tick() {
     setTimeout(() => {
       window.requestAnimationFrame(this.tick.bind(this));

@@ -46,6 +46,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           splat.addKeyHandler(77, () => {
             splat.clear();
           });
+          splat.onLeaveViewport = (_: number[]) => {
+            scene.removeSplatFromId(splat.id);
+            splat.clear();
+          }
         });
       }
     });

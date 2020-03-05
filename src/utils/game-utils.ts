@@ -80,3 +80,23 @@ export const initWebGL = (canvas: HTMLCanvasElement): WebGL2RenderingContext => 
 export const isPowerOf2 = (value: number) => {
     return (value & (value - 1)) == 0;
 };
+
+export const safeCreateBuffer = (gl: WebGL2RenderingContext): WebGLBuffer => {
+    const buffer = gl.createBuffer();
+
+    if (buffer === null) {
+        throw new Error("Cannot create buffer");
+    }
+
+    return buffer;
+};
+
+export const safeCreateTexture = (gl: WebGL2RenderingContext): WebGLTexture => {
+    const texture = gl.createTexture();
+
+    if (texture === null) {
+        throw new Error("Cannot create texture");
+    }
+
+    return texture;
+};

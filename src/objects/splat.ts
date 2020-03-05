@@ -1,7 +1,8 @@
-import {initShaders, isPowerOf2} from "../utils/game-utils";
+import {initShaders, isPowerOf2, safeCreateBuffer, safeCreateTexture} from "../utils/game-utils";
 import {KeyHandler} from "./key-handler";
 
 export class Splat extends KeyHandler {
+
     id: string;
     texture: WebGLTexture;
     gl: WebGL2RenderingContext;
@@ -39,6 +40,8 @@ export class Splat extends KeyHandler {
 
     loaded = false;
 
+    private _onLeaveViewport: Function = () => null;
+
     constructor(gl: WebGL2RenderingContext, textureUri: string, id: string) {
         super();
         this.gl = gl;
@@ -55,7 +58,7 @@ export class Splat extends KeyHandler {
         const {gl} = this;
 
         // cree un nouveau buffer sur le GPU et l'active
-        this.vertexBuffer = gl.createBuffer();
+        this.vertexBuffer = safeCreateBuffer(gl);
         (this.vertexBuffer as any).itemSize = 3;
         (this.vertexBuffer as any).numItems = 4;
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
@@ -64,7 +67,7 @@ export class Splat extends KeyHandler {
         gl.vertexAttribPointer(0, (this.vertexBuffer as any).itemSize, gl.FLOAT, false, 0, 0);
 
         // meme principe pour les coords
-        this.coordBuffer = gl.createBuffer();
+        this.coordBuffer = safeCreateBuffer(gl);
         (this.coordBuffer as any).itemSize = 2;
         (this.coordBuffer as any).numItems = 4;
         gl.bindBuffer(gl.ARRAY_BUFFER, this.coordBuffer);
@@ -73,7 +76,7 @@ export class Splat extends KeyHandler {
         gl.vertexAttribPointer(1, (this.coordBuffer as any).itemSize, gl.FLOAT, false, 0, 0);
 
         // creation des faces du cube (les triangles) avec les indices vers les sommets
-        this.triangles = gl.createBuffer();
+        this.triangles = safeCreateBuffer(gl);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.triangles);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), gl.STATIC_DRAW);
         (this.triangles as any).numItems = 6;
@@ -104,9 +107,13 @@ export class Splat extends KeyHandler {
 
     setParameters (elapsed: number) {
         this.time += 0.01*elapsed;
-        // on peut animer les splats ici. Par exemple :
-        //this.position[1] += 0.03; // permet de déplacer le splat vers le haut au fil du temps
-        //this.position[0] += 0.02*Math.sin(this.time); // permet de déplacer le splat sur l'axe X
+
+        this.position[1] += 0.03;
+        this.position[0] += 0.02*Math.sin(this.time);
+
+        if (this.position[1] > 1) {
+            this.onLeaveViewport(this.position);
+        }
     }
 
     sendUniformVariables() {
@@ -170,11 +177,7 @@ export class Splat extends KeyHandler {
     ): WebGLTexture => {
         const {gl} = this;
 
-        const texture = gl.createTexture();
-
-        if (texture === null) {
-            throw new Error("Cannot create texture");
-        }
+        const texture = safeCreateTexture(gl);
 
         gl.bindTexture(gl.TEXTURE_2D, texture);
 
@@ -226,4 +229,12 @@ export class Splat extends KeyHandler {
 
         return texture;
     };
+
+    get onLeaveViewport(): Function {
+        return this._onLeaveViewport;
+    }
+
+    set onLeaveViewport(value: Function) {
+        this._onLeaveViewport = value;
+    }
 }
