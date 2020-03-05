@@ -1,4 +1,3 @@
-import { Background } from "./objects/background";
 import { Scene } from "./scene";
 import { initWebGL } from "./utils/game-utils";
 // @ts-ignore
