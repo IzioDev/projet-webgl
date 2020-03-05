@@ -5,8 +5,6 @@ import { Splat } from "./objects/splat";
 export class Scene {
   gl: WebGL2RenderingContext;
   background: Background;
-  model: Model;
-  splat: Splat;
 
   loadedModels: Model[] = [];
   loadedSplats: Splat[] = [];

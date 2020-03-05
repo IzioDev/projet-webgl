@@ -1,6 +1,7 @@
 import { Scene } from "./scene";
 import { initWebGL } from "./utils/game-utils";
 import {Background} from "./objects/background";
+import { v4 as uuidv4 } from 'uuid';
 // @ts-ignore
 const planeObjUri = require("./assets/plane.obj");
 // @ts-ignore
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const y = bb[1][1];
         const z = bb[1][2] + 0.005;
 
-        scene.addSplatFromUri(missileTextureImageUri, "splat-1").then(splat => {
+        scene.addSplatFromUri(missileTextureImageUri, uuidv4()).then(splat => {
           splat.setPosition(x, y, z);
           splat.addKeyHandler(77, () => {
             splat.clear();

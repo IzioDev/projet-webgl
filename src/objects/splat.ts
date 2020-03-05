@@ -15,7 +15,7 @@ export class Splat extends KeyHandler {
 
     width = 0.2;
     height = 0.2;
-    position = [0.0,0.0,0.0];
+    position = [-1.5,1.0,0.0];
     couleur = [1,0,0];
     time = 0.0;
 

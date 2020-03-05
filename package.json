@@ -13,7 +13,8 @@
   "dependencies": {
     "@types/gl-matrix": "^2.4.5",
     "gl-matrix": "^3.2.1",
-    "parcel-bundler": "^1.12.4"
+    "parcel-bundler": "^1.12.4",
+    "uuid": "^7.0.2"
   },
   "devDependencies": {
     "typescript": "^3.7.5"
