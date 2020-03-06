@@ -27729,7 +27729,7 @@ function () {
     }
   };
 
-  MissileAmmoManager.prototype.remove = function (n) {
+  MissileAmmoManager.prototype.removeOne = function () {
     if (this.ammo.length > 0) {
       var ammo = this.ammo.pop();
       this.scene.removeSplatFromId(ammo.splat.id);
@@ -27949,7 +27949,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
         model.addKeyHandler(32, function () {
           if (scene.getTime() - lastTimeShootMissile > 1000 && missileAmmoManager.getLeftCount() > 0) {
-            missileAmmoManager.remove(1);
+            missileAmmoManager.removeOne();
             lastTimeShootMissile = scene.getTime();
             var bb = model.getBBox();
             var x_1 = (bb[0][0] + bb[1][0]) / 2;

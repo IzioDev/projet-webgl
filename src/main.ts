@@ -46,7 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     model.addKeyHandler(32, () => {
       if (scene.getTime() - lastTimeShootMissile > 1000 && missileAmmoManager.getLeftCount() > 0) {
 
-        missileAmmoManager.remove(1);
+        missileAmmoManager.removeOne();
 
         lastTimeShootMissile = scene.getTime();
         const bb = model.getBBox();
@@ -68,8 +68,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   });
-
-
 
   // la couleur de fond sera grise fonc�e
   gl.clearColor(0.3, 0.3, 0.3, 1.0);

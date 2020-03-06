@@ -35,14 +35,14 @@ export class MissileAmmoManager {
         for (let i = 1; i <= n; i++) {
             this.scene.addSplatFromUri(textureUri, `ammo-${uuid.v4()}`)
                 .then((splat) => {
-                    this.ammo.push({splat})
+                    this.ammo.push({splat});
                     splat.position = [-1.087 + (0.13 * this.ammo.length),-0.9,0.5];
                     splat.onTick = () => null;
                 });
         }
     }
 
-    remove(n: number) {
+    removeOne() {
         if (this.ammo.length > 0) {
             const ammo = this.ammo.pop() as IMissileAmmo;
             this.scene.removeSplatFromId(ammo.splat.id);
