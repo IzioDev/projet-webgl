@@ -1,10 +1,21 @@
-import { Background } from "./objects/background";
-import { Model } from "./objects/model";
-import { Splat } from "./objects/splat";
+import {Background} from "./objects/background";
+import {Model} from "./objects/model";
+import {Splat} from "./objects/splat";
+import {EShaderType, ShaderManager} from "./objects/shader-manager";
+import { pathOr } from 'ramda';
+
+export interface IBackgroundOptions {
+  offset?: number[];
+  amplitude?: number;
+  frequency?: number;
+  persistence?: number;
+}
 
 export class Scene {
   gl: WebGL2RenderingContext;
-  background: Background;
+  background: Background | null = null;
+
+  shaderManager: ShaderManager;
 
   loadedModels: Model[] = [];
   loadedSplats: Splat[] = [];
@@ -23,6 +34,8 @@ export class Scene {
   ) {
     this.gl = gl;
 
+    this.shaderManager = new ShaderManager(gl);
+
     const handleKeyDown = (event: KeyboardEvent) => {
       this.currentlyPressed[event.keyCode] = true;
     };
@@ -35,13 +48,24 @@ export class Scene {
     document.onkeyup = handleKeyUp;
   }
 
-  setBackground(background: Background) {
+  setBackground(options?: IBackgroundOptions) {
+    const backgroundProgram = this.shaderManager.loadOrGetLoadedShader("background-vs", "background-fs", EShaderType.BACKGROUND);
+
+    const background = new Background(this.gl, backgroundProgram);
+    if (options) {
+      background.frequency = pathOr(background.frequency,["frequency"], options);
+      background.offset = pathOr(background.offset,["offset"], options);
+      background.persistence = pathOr(background.persistence,["persistence"], options);
+      background.amplitude = pathOr(background.amplitude,["amplitude"], options);
+    }
+
     this.background = background;
   }
 
   addModelFromObjectUri(objectUri: string, id: string): Promise<Model> {
     return new Promise((res, _) => {
-      const model = new Model(this.gl, objectUri, id);
+      const modelProgram = this.shaderManager.loadOrGetLoadedShader("model-vs", "model-fs", EShaderType.MODEL);
+      const model = new Model(this.gl, objectUri, modelProgram, id);
       model.load().then(() => {
         this.models.push(model);
         res(model);
@@ -51,7 +75,8 @@ export class Scene {
 
   addSplatFromUri(splatUri: string, id: string): Promise<Splat> {
     return new Promise((res, _) => {
-      const splat = new Splat(this.gl, splatUri, id);
+      const splatProgram = this.shaderManager.loadOrGetLoadedShader("splat-vs", "splat-fs", EShaderType.SPLAT);
+      const splat = new Splat(this.gl, splatUri, splatProgram, id);
       this.splats.push(splat);
       res(splat);
     });
@@ -85,7 +110,6 @@ export class Scene {
         }
       })
     });
-
   }
 
   drawScene() {

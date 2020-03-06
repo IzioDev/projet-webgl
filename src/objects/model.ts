@@ -59,12 +59,12 @@ export class Model extends KeyHandler {
     viewMatrix;
     projMatrix;
 
-    constructor(gl: WebGL2RenderingContext, textureUri: string, id: string) {
+    constructor(gl: WebGL2RenderingContext, textureUri: string, program: WebGLProgram, id: string) {
         super();
 
         this.gl = gl;
         this.textureUri = textureUri;
-        this.shader = Model.initShader(gl);
+        this.shader = program;
         this.id = id;
 
         const _vertexBuffer = gl.createBuffer();
@@ -377,36 +377,32 @@ export class Model extends KeyHandler {
         this.loaded = false;
     }
 
-
-
-    static initShader (gl: WebGL2RenderingContext) {
-        const modelShader = initShaders(gl, "model-vs", "model-fs");
-
+    static initProgram (gl: WebGL2RenderingContext, program: WebGLProgram) {
         // active ce shader
-        gl.useProgram(modelShader);
+        gl.useProgram(program);
 
         // adresse des variables de type uniform dans le shader
-        (modelShader as any).modelMatrixUniform = gl.getUniformLocation(
-            modelShader,
+        (program as any).modelMatrixUniform = gl.getUniformLocation(
+            program,
             "uModelMatrix"
         );
-        (modelShader as any).viewMatrixUniform = gl.getUniformLocation(
-            modelShader,
+        (program as any).viewMatrixUniform = gl.getUniformLocation(
+            program,
             "uViewMatrix"
         );
-        (modelShader as any).projMatrixUniform = gl.getUniformLocation(
-            modelShader,
+        (program as any).projMatrixUniform = gl.getUniformLocation(
+            program,
             "uProjMatrix"
         );
 
         //couleur obj
-        (modelShader as any).kdUniform = gl.getUniformLocation(modelShader, "ukd");
+        (program as any).kdUniform = gl.getUniformLocation(program, "ukd");
 
         //lumiere
-        (modelShader as any).lightUniform = gl.getUniformLocation(modelShader, "ul");
+        (program as any).lightUniform = gl.getUniformLocation(program, "ul");
 
         console.log("model shader initialized");
-        return modelShader;
+        return program;
     };
 
 }

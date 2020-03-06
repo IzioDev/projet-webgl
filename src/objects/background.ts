@@ -1,4 +1,4 @@
-import {initShaders} from "../utils/game-utils";
+import {initShaders, safeCreateBuffer} from "../utils/game-utils";
 
 export class Background {
     backgroundShader: WebGLProgram;
@@ -33,9 +33,9 @@ export class Background {
 
     loaded: boolean = false;
 
-    constructor(gl: WebGL2RenderingContext) {
-        this.backgroundShader = Background.initShader(gl);
+    constructor(gl: WebGL2RenderingContext, program: WebGLProgram) {
         this.gl = gl;
+        this.backgroundShader = program;
         this.bindGC();
     }
 
@@ -53,7 +53,7 @@ export class Background {
         this.gl.bindVertexArray(this.vao);
 
         // cree un nouveau buffer sur le GPU et l'active
-        this.vertexBuffer = this.gl.createBuffer();
+        this.vertexBuffer = safeCreateBuffer(this.gl);
         (this.vertexBuffer as any).itemSize = 3;
         (this.vertexBuffer as any).numItems = 4;
 
@@ -63,7 +63,7 @@ export class Background {
         this.gl.vertexAttribPointer(0, (this.vertexBuffer as any).itemSize, this.gl.FLOAT, false, 0, 0);
 
         // meme principe pour les coords de texture
-        this.coordBuffer = this.gl.createBuffer();
+        this.coordBuffer = safeCreateBuffer(this.gl);
         (this.coordBuffer as any).itemSize = 2;
         (this.coordBuffer as any).numItems = 4;
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.coordBuffer);
@@ -72,7 +72,7 @@ export class Background {
         this.gl.vertexAttribPointer(1, (this.coordBuffer as any).itemSize, this.gl.FLOAT, false, 0, 0);
 
         // creation des faces du cube (les triangles) avec les indices vers les sommets
-        this.triangles = this.gl.createBuffer();
+        this.triangles = safeCreateBuffer(this.gl);
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.triangles);
         this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), this.gl.STATIC_DRAW);
         (this.triangles as any).numItems = 6;
@@ -109,33 +109,31 @@ export class Background {
         this.loaded = false;
     }
 
-    static initShader(gl: WebGL2RenderingContext) {
-        const backgroundShader = initShaders(gl, "background-vs", "background-fs");
-
+    static initProgram(gl: WebGL2RenderingContext, program: WebGLProgram) {
         // active ce shader
-        gl.useProgram(backgroundShader);
+        gl.useProgram(program);
 
         // adresse des variables dans le shader associé
-        (backgroundShader as any).offsetUniform = gl.getUniformLocation(
-            backgroundShader,
+        (program as any).offsetUniform = gl.getUniformLocation(
+            program,
             "uOffset"
         );
-        (backgroundShader as any).amplitudeUniform = gl.getUniformLocation(
-            backgroundShader,
+        (program as any).amplitudeUniform = gl.getUniformLocation(
+            program,
             "uAmplitude"
         );
-        (backgroundShader as any).frequencyUniform = gl.getUniformLocation(
-            backgroundShader,
+        (program as any).frequencyUniform = gl.getUniformLocation(
+            program,
             "uFrequency"
         );
-        (backgroundShader as any).persistenceUniform = gl.getUniformLocation(
-            backgroundShader,
+        (program as any).persistenceUniform = gl.getUniformLocation(
+            program,
             "uPersistence"
         );
 
         console.log("background shader initialized");
 
-        return backgroundShader;
+        return program;
     };
 
     setParameters(elapsed: number) {

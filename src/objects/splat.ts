@@ -42,12 +42,12 @@ export class Splat extends KeyHandler {
 
     private _onLeaveViewport: Function = () => null;
 
-    constructor(gl: WebGL2RenderingContext, textureUri: string, id: string) {
+    constructor(gl: WebGL2RenderingContext, textureUri: string, program: WebGLProgram, id: string) {
         super();
         this.gl = gl;
 
         this.texture = this.initTexture(textureUri);
-        this.shader = Splat.initShader(gl);
+        this.shader = program;
 
         this.id = id;
 
@@ -150,26 +150,24 @@ export class Splat extends KeyHandler {
         this.loaded = false;
     }
 
-    static initShader (gl: WebGL2RenderingContext) {
-        const splatShader = initShaders(gl, "splat-vs", "splat-fs");
-
+    static initProgram (gl: WebGL2RenderingContext, program: WebGLProgram) {
         // active ce shader
-        gl.useProgram(splatShader);
+        gl.useProgram(program);
 
         // adresse des variables uniform dans le shader
-        (splatShader as any).positionUniform = gl.getUniformLocation(
-            splatShader,
+        (program as any).positionUniform = gl.getUniformLocation(
+            program,
             "uPosition"
         );
-        (splatShader as any).texUniform = gl.getUniformLocation(splatShader, "uTex");
-        (splatShader as any).couleurUniform = gl.getUniformLocation(
-            splatShader,
+        (program as any).texUniform = gl.getUniformLocation(program, "uTex");
+        (program as any).couleurUniform = gl.getUniformLocation(
+            program,
             "maCouleur"
         );
 
         console.log("splat shader initialized");
 
-        return splatShader;
+        return program;
     };
 
     initTexture = (
