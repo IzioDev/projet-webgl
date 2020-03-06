@@ -7,6 +7,22 @@
     <style>html, body {
             margin: 0;
             overflow: hidden;
+        }
+
+        img.ps:hover {
+            background-color: #E34954;
+        }
+
+        img.rem:hover {
+            background-color: #0A478C;
+        }
+
+        img.clickable {
+            border: solid black 1px;
+        }
+
+        img.clickable:hover {
+            cursor: pointer;
         }</style>
 </head>
 <body>
@@ -192,8 +208,14 @@
         outColor = texture(uTex,vTextureCoord);
     }
     </script>
-    <canvas id="super-soccer-canvas" style="border: none;" width="800" height="800">
+    <canvas id="super-soccer-canvas" style="border: none; display: inline-block;" width="800" height="800">
     </canvas>
     <script src="/main.c39d6dcf.js"></script>
+    <div style="position: absolute; top: 0; right: 0">
+        <img id="hollande" class="clickable ps" style="transform: rotate(180deg)" width="100" height="100" src="/hollande.7dde791e.png">
+        <img id="macron" class="clickable rem" style="transform: rotate(180deg)" width="100" height="100" src="/macron-edit.2a538bed.png">
+    </div>
+
+
 </body>
 </html>

@@ -1,4 +1,4 @@
-import {initShaders, isPowerOf2, safeCreateBuffer, safeCreateTexture} from "../utils/game-utils";
+import {isPowerOf2, safeCreateBuffer, safeCreateTexture} from "../utils/game-utils";
 import {KeyHandler} from "./key-handler";
 
 export class Splat extends KeyHandler {
@@ -111,7 +111,7 @@ export class Splat extends KeyHandler {
         this.time += 0.01*elapsed;
 
         this.position[1] += 0.03;
-        this.position[0] += 0.02*Math.sin(this.time);
+        this.position[0] += 0.01*Math.sin(this.time * 4);
 
         if (this.position[1] > 1) {
             this.onLeaveViewport(this.position);

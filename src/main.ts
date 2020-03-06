@@ -1,13 +1,30 @@
-import { Scene } from "./scene";
-import { initWebGL } from "./utils/game-utils";
-import { v4 as uuidv4 } from 'uuid';
+import {Scene} from "./scene";
+import {initWebGL} from "./utils/game-utils";
+import {v4 as uuidv4} from "uuid";
 import {MissileAmmoManager} from "./objects/missile-ammo-manager";
+import {EEnemy, EnemyManager} from "./objects/enemy-manager";
 // @ts-ignore
 const planeObjUri = require("./assets/plane.obj");
 // @ts-ignore
 const missileTextureImageUri = require("./assets/missile2.png");
 
+let scene: Scene | null = null;
+let enemyManager: EnemyManager | null;
+
+export const onEnemyTypeChanged = (enemyType: EEnemy) => {
+  enemyManager?.setPreferredEnemyType(enemyType);
+};
+
 document.addEventListener("DOMContentLoaded", async () => {
+
+  document.getElementById('hollande')?.addEventListener('click', () => {
+    onEnemyTypeChanged(EEnemy.HOLLANDE);
+  });
+
+  document.getElementById('macron')?.addEventListener('click', () => {
+    onEnemyTypeChanged(EEnemy.MACRON);
+  });
+
   const canvas: HTMLCanvasElement = document.getElementById(
     "super-soccer-canvas"
   ) as HTMLCanvasElement;
@@ -20,13 +37,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let lastTimeShootMissile = 0;
 
-  const scene = new Scene(gl);
+  scene = new Scene(gl);
 
   const missileAmmoManager = new MissileAmmoManager(scene);
   missileAmmoManager.add(3, missileTextureImageUri);
 
-  scene.setBackground({amplitude: 5, offset: [0.5,0.0], persistence: 0.8, frequency: 6});
-  scene.addModelFromObjectUri(planeObjUri, "plane-1").then(model => {
+  enemyManager = new EnemyManager(scene);
+  enemyManager.add(1);
+
+  scene.setBackground({
+    amplitude: 5,
+    offset: [0.5, 0.0],
+    persistence: 0.8,
+    frequency: 6
+  });
+
+  await scene.addModelFromObjectUri(planeObjUri, "plane-1").then(model => {
     model.addKeyHandler(68, () => {
       model.move(1, 0);
     });
@@ -44,8 +70,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     model.addKeyHandler(32, () => {
-      if (scene.getTime() - lastTimeShootMissile > 1000 && missileAmmoManager.getLeftCount() > 0) {
-
+      if (
+        scene.getTime() - lastTimeShootMissile > 500 &&
+        missileAmmoManager.getLeftCount() > 0
+      ) {
         missileAmmoManager.removeOne();
 
         lastTimeShootMissile = scene.getTime();
@@ -63,7 +91,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           splat.onLeaveViewport = (_: number[]) => {
             scene.removeSplatFromId(splat.id);
             splat.clear();
-          }
+          };
         });
       }
     });

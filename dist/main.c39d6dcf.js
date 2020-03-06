@@ -8550,6 +8550,8 @@ Object.defineProperty(exports, "__esModule", {
 
 var gl_matrix_1 = require("gl-matrix");
 
+var game_utils_1 = require("../utils/game-utils");
+
 var key_handler_1 = require("./key-handler");
 
 var Model =
@@ -8636,23 +8638,23 @@ function (_super) {
                 var arrayNormal = [];
 
                 for (var i = 0; i < lines.length; i++) {
-                  var parts = lines[i].trimRight().split(' ');
+                  var parts = lines[i].trimRight().split(" ");
 
                   if (parts.length > 0) {
                     switch (parts[0]) {
-                      case 'v':
+                      case "v":
                         positions.push(gl_matrix_1.vec3.fromValues(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])));
                         break;
 
-                      case 'vn':
+                      case "vn":
                         normals.push(gl_matrix_1.vec3.fromValues(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])));
                         break;
 
-                      case 'f':
+                      case "f":
                         {
-                          var f1 = parts[1].split('/');
-                          var f2 = parts[2].split('/');
-                          var f3 = parts[3].split('/');
+                          var f1 = parts[1].split("/");
+                          var f2 = parts[2].split("/");
+                          var f3 = parts[3].split("/");
                           Array.prototype.push.apply(arrayVertex, positions[parseInt(f1[0]) - 1]);
                           Array.prototype.push.apply(arrayVertex, positions[parseInt(f2[0]) - 1]);
                           Array.prototype.push.apply(arrayVertex, positions[parseInt(f3[0]) - 1]);
@@ -8716,14 +8718,14 @@ function (_super) {
     this.vao = gl.createVertexArray();
     gl.bindVertexArray(this.vao); // cree un nouveau buffer sur le GPU et l'active
 
-    this.vertexBuffer = gl.createBuffer();
+    this.vertexBuffer = game_utils_1.safeCreateBuffer(this.gl);
     this.vertexBuffer.itemSize = 3;
     this.vertexBuffer.numItems = vertices.length / 3;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
     gl.enableVertexAttribArray(0);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
     gl.vertexAttribPointer(0, this.vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    this.normalBuffer = gl.createBuffer();
+    this.normalBuffer = game_utils_1.safeCreateBuffer(this.gl);
     this.normalBuffer.itemSize = 3;
     this.normalBuffer.numItems = normals.length / 3;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
@@ -8751,7 +8753,7 @@ function (_super) {
 
     this.position = [0, 0, 0]; // position de l'objet dans l'espace
 
-    this.rotation = 0.; // angle de rotation en radian autour de l'axe Y
+    this.rotation = 0; // angle de rotation en radian autour de l'axe Y
 
     this.scale = 0.2; // mise à l'echelle (car l'objet est trop  gros par défaut)
   };
@@ -8760,7 +8762,7 @@ function (_super) {
     this.position = [x, y, z];
   };
 
-  Model.prototype.setParameters = function (elapsed) {
+  Model.prototype.setParameters = function (_) {
     // fonction appelée à chaque frame.
     // mise à jour de la matrice modèle avec les paramètres de transformation
     // les matrices view et projection ne changent pas
@@ -8831,8 +8833,6 @@ function (_super) {
     return dest;
   };
 
-  ;
-
   Model.prototype.draw = function () {
     // cette fonction dit à la carte graphique de dessiner le vaisseau (déjà stocké en mémoire)
     if (this.loaded) {
@@ -8845,7 +8845,7 @@ function (_super) {
   Model.prototype.move = function (x, y) {
     // faire bouger votre vaisseau ici. Exemple :
     this.rotation += x * 0.05;
-    this.position[0] += x * 0.1 * Math.abs(this.rotation);
+    this.position[0] += x * 0.1;
     this.position[1] += y * 0.1;
 
     if (this.rotation > 0.8) {
@@ -8900,12 +8900,11 @@ function (_super) {
     return program;
   };
 
-  ;
   return Model;
 }(key_handler_1.KeyHandler);
 
 exports.Model = Model;
-},{"gl-matrix":"../node_modules/gl-matrix/esm/index.js","./key-handler":"objects/key-handler.ts"}],"objects/splat.ts":[function(require,module,exports) {
+},{"gl-matrix":"../node_modules/gl-matrix/esm/index.js","../utils/game-utils":"utils/game-utils.ts","./key-handler":"objects/key-handler.ts"}],"objects/splat.ts":[function(require,module,exports) {
 "use strict";
 
 var __extends = this && this.__extends || function () {
@@ -9060,7 +9059,7 @@ function (_super) {
   Splat.prototype.setParameters = function (elapsed) {
     this.time += 0.01 * elapsed;
     this.position[1] += 0.03;
-    this.position[0] += 0.02 * Math.sin(this.time);
+    this.position[0] += 0.01 * Math.sin(this.time * 4);
 
     if (this.position[1] > 1) {
       this.onLeaveViewport(this.position);
@@ -27751,7 +27750,126 @@ function () {
 }();
 
 exports.MissileAmmoManager = MissileAmmoManager;
-},{"uuid":"../node_modules/uuid/dist/esm-browser/index.js","../assets/missile2.png":"assets/missile2.png"}],"assets/plane.obj":[function(require,module,exports) {
+},{"uuid":"../node_modules/uuid/dist/esm-browser/index.js","../assets/missile2.png":"assets/missile2.png"}],"assets/macron-edit.png":[function(require,module,exports) {
+module.exports = "/macron-edit.2a538bed.png";
+},{}],"assets/hollande.png":[function(require,module,exports) {
+module.exports = "/hollande.7dde791e.png";
+},{}],"objects/enemy-manager.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var uuid_1 = require("uuid");
+
+var EEnemy;
+
+(function (EEnemy) {
+  EEnemy[EEnemy["HOLLANDE"] = 0] = "HOLLANDE";
+  EEnemy[EEnemy["MACRON"] = 1] = "MACRON";
+})(EEnemy = exports.EEnemy || (exports.EEnemy = {}));
+
+var EnemyManager =
+/** @class */
+function () {
+  function EnemyManager(scene, // @ts-ignore
+  macronTextureImageUri, // @ts-ignore
+  hollandeTextureImageUri) {
+    var _this = this;
+
+    if (macronTextureImageUri === void 0) {
+      macronTextureImageUri = require("../assets/macron-edit.png");
+    }
+
+    if (hollandeTextureImageUri === void 0) {
+      hollandeTextureImageUri = require("../assets/hollande.png");
+    }
+
+    this.scene = scene;
+    this.macronTextureImageUri = macronTextureImageUri;
+    this.hollandeTextureImageUri = hollandeTextureImageUri;
+    this.enemies = [];
+    this.lastTimeEnemyCheck = 0;
+    this.preferredEnemyType = EEnemy.MACRON;
+    scene.addOnTickHandler(function (elapsed) {
+      if (_this.lastTimeEnemyCheck === 0) {
+        _this.lastTimeEnemyCheck = elapsed;
+      }
+
+      if (elapsed - _this.lastTimeEnemyCheck > 3000) {
+        _this.lastTimeEnemyCheck = elapsed;
+
+        _this.add(Math.random() * 3);
+      }
+    });
+  }
+
+  EnemyManager.prototype.add = function (n) {
+    var _this = this;
+
+    for (var i = 0; i < n; i++) {
+      this.scene.addSplatFromUri(this.getImageUri(), "enemy-" + uuid_1.v4()).then(function (splat) {
+        _this.enemies.push({
+          id: splat.id,
+          splat: splat
+        });
+
+        splat.setPosition(_this.recFindGoodPosition(), 1, 0.5);
+
+        splat.onTick = function (elapsed) {
+          splat.position[1] -= 0.0005 * elapsed;
+
+          if (splat.position[1] < -1) {
+            _this.scene.removeSplatFromId(splat.id);
+
+            splat.clear();
+
+            _this.removeFromId(splat.id);
+          }
+        };
+      });
+    }
+  };
+
+  EnemyManager.prototype.recFindGoodPosition = function () {
+    var desiredPosition = Math.random() * 2 - 1;
+    var nearEnemies = this.enemies.filter(function (splat) {
+      return Math.abs(splat.splat.position[0] - desiredPosition) <= 0.25;
+    });
+
+    if (nearEnemies.length > 0) {
+      return this.recFindGoodPosition();
+    }
+
+    return desiredPosition;
+  };
+
+  EnemyManager.prototype.removeFromId = function (id) {
+    this.enemies = this.enemies.filter(function (splat) {
+      return splat.id !== id;
+    });
+  };
+
+  EnemyManager.prototype.setPreferredEnemyType = function (type) {
+    this.preferredEnemyType = type;
+  };
+
+  EnemyManager.prototype.getImageUri = function () {
+    switch (this.preferredEnemyType) {
+      case EEnemy.HOLLANDE:
+        return this.hollandeTextureImageUri;
+
+      case EEnemy.MACRON:
+        return this.macronTextureImageUri;
+    }
+  };
+
+  return EnemyManager;
+}();
+
+exports.EnemyManager = EnemyManager;
+},{"uuid":"../node_modules/uuid/dist/esm-browser/index.js","../assets/macron-edit.png":"assets/macron-edit.png","../assets/hollande.png":"assets/hollande.png"}],"assets/plane.obj":[function(require,module,exports) {
 module.exports = "/plane.f45d05b1.obj";
 },{}],"main.ts":[function(require,module,exports) {
 "use strict";
@@ -27909,7 +28027,9 @@ var game_utils_1 = require("./utils/game-utils");
 
 var uuid_1 = require("uuid");
 
-var missile_ammo_manager_1 = require("./objects/missile-ammo-manager"); // @ts-ignore
+var missile_ammo_manager_1 = require("./objects/missile-ammo-manager");
+
+var enemy_manager_1 = require("./objects/enemy-manager"); // @ts-ignore
 
 
 var planeObjUri = require("./assets/plane.obj"); // @ts-ignore
@@ -27917,75 +28037,104 @@ var planeObjUri = require("./assets/plane.obj"); // @ts-ignore
 
 var missileTextureImageUri = require("./assets/missile2.png");
 
+var scene = null;
+var enemyManager;
+
+exports.onEnemyTypeChanged = function (enemyType) {
+  var _a;
+
+  (_a = enemyManager) === null || _a === void 0 ? void 0 : _a.setPreferredEnemyType(enemyType);
+};
+
 document.addEventListener("DOMContentLoaded", function () {
   return __awaiter(void 0, void 0, void 0, function () {
-    var canvas, clientHeight, gl, lastTimeShootMissile, scene, missileAmmoManager;
-    return __generator(this, function (_a) {
-      canvas = document.getElementById("super-soccer-canvas");
-      clientHeight = document.documentElement.clientHeight;
-      canvas.height = clientHeight;
-      canvas.width = clientHeight;
-      gl = game_utils_1.initWebGL(canvas);
-      lastTimeShootMissile = 0;
-      scene = new scene_1.Scene(gl);
-      missileAmmoManager = new missile_ammo_manager_1.MissileAmmoManager(scene);
-      missileAmmoManager.add(3, missileTextureImageUri);
-      scene.setBackground({
-        amplitude: 5,
-        offset: [0.5, 0.0],
-        persistence: 0.8,
-        frequency: 6
-      });
-      scene.addModelFromObjectUri(planeObjUri, "plane-1").then(function (model) {
-        model.addKeyHandler(68, function () {
-          model.move(1, 0);
-        });
-        model.addKeyHandler(81, function () {
-          model.move(-1, 0);
-        });
-        model.addKeyHandler(90, function () {
-          model.move(0, 1);
-        });
-        model.addKeyHandler(83, function () {
-          model.move(0, -1);
-        });
-        model.addKeyHandler(32, function () {
-          if (scene.getTime() - lastTimeShootMissile > 1000 && missileAmmoManager.getLeftCount() > 0) {
-            missileAmmoManager.removeOne();
-            lastTimeShootMissile = scene.getTime();
-            var bb = model.getBBox();
-            var x_1 = (bb[0][0] + bb[1][0]) / 2;
-            var y_1 = bb[1][1];
-            var z_1 = bb[1][2] + 0.005;
-            scene.addSplatFromUri(missileTextureImageUri, uuid_1.v4()).then(function (splat) {
-              splat.setPosition(x_1, y_1, z_1);
-              splat.addKeyHandler(77, function () {
-                scene.removeSplatFromId(splat.id);
-                splat.clear();
-              });
+    var canvas, clientHeight, gl, lastTimeShootMissile, missileAmmoManager;
 
-              splat.onLeaveViewport = function (_) {
-                scene.removeSplatFromId(splat.id);
-                splat.clear();
-              };
+    var _a, _b;
+
+    return __generator(this, function (_c) {
+      switch (_c.label) {
+        case 0:
+          (_a = document.getElementById('hollande')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', function () {
+            exports.onEnemyTypeChanged(enemy_manager_1.EEnemy.HOLLANDE);
+          });
+          (_b = document.getElementById('macron')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', function () {
+            exports.onEnemyTypeChanged(enemy_manager_1.EEnemy.MACRON);
+          });
+          canvas = document.getElementById("super-soccer-canvas");
+          clientHeight = document.documentElement.clientHeight;
+          canvas.height = clientHeight;
+          canvas.width = clientHeight;
+          gl = game_utils_1.initWebGL(canvas);
+          lastTimeShootMissile = 0;
+          scene = new scene_1.Scene(gl);
+          missileAmmoManager = new missile_ammo_manager_1.MissileAmmoManager(scene);
+          missileAmmoManager.add(3, missileTextureImageUri);
+          enemyManager = new enemy_manager_1.EnemyManager(scene);
+          enemyManager.add(1);
+          scene.setBackground({
+            amplitude: 5,
+            offset: [0.5, 0.0],
+            persistence: 0.8,
+            frequency: 6
+          });
+          return [4
+          /*yield*/
+          , scene.addModelFromObjectUri(planeObjUri, "plane-1").then(function (model) {
+            model.addKeyHandler(68, function () {
+              model.move(1, 0);
             });
-          }
-        });
-      }); // la couleur de fond sera grise fonc�e
+            model.addKeyHandler(81, function () {
+              model.move(-1, 0);
+            });
+            model.addKeyHandler(90, function () {
+              model.move(0, 1);
+            });
+            model.addKeyHandler(83, function () {
+              model.move(0, -1);
+            });
+            model.addKeyHandler(32, function () {
+              if (scene.getTime() - lastTimeShootMissile > 500 && missileAmmoManager.getLeftCount() > 0) {
+                missileAmmoManager.removeOne();
+                lastTimeShootMissile = scene.getTime();
+                var bb = model.getBBox();
+                var x_1 = (bb[0][0] + bb[1][0]) / 2;
+                var y_1 = bb[1][1];
+                var z_1 = bb[1][2] + 0.005;
+                scene.addSplatFromUri(missileTextureImageUri, uuid_1.v4()).then(function (splat) {
+                  splat.setPosition(x_1, y_1, z_1);
+                  splat.addKeyHandler(77, function () {
+                    scene.removeSplatFromId(splat.id);
+                    splat.clear();
+                  });
 
-      gl.clearColor(0.3, 0.3, 0.3, 1.0); // active le test de profondeur
+                  splat.onLeaveViewport = function (_) {
+                    scene.removeSplatFromId(splat.id);
+                    splat.clear();
+                  };
+                });
+              }
+            });
+          })];
 
-      gl.enable(gl.DEPTH_TEST); // fonction de mélange utilisée pour la transparence
+        case 1:
+          _c.sent(); // la couleur de fond sera grise fonc�e
 
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      scene.tick();
-      return [2
-      /*return*/
-      ];
+
+          gl.clearColor(0.3, 0.3, 0.3, 1.0); // active le test de profondeur
+
+          gl.enable(gl.DEPTH_TEST); // fonction de mélange utilisée pour la transparence
+
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          scene.tick();
+          return [2
+          /*return*/
+          ];
+      }
     });
   });
 });
-},{"./scene":"scene.ts","./utils/game-utils":"utils/game-utils.ts","uuid":"../node_modules/uuid/dist/esm-browser/index.js","./objects/missile-ammo-manager":"objects/missile-ammo-manager.ts","./assets/plane.obj":"assets/plane.obj","./assets/missile2.png":"assets/missile2.png"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./scene":"scene.ts","./utils/game-utils":"utils/game-utils.ts","uuid":"../node_modules/uuid/dist/esm-browser/index.js","./objects/missile-ammo-manager":"objects/missile-ammo-manager.ts","./objects/enemy-manager":"objects/enemy-manager.ts","./assets/plane.obj":"assets/plane.obj","./assets/missile2.png":"assets/missile2.png"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -28013,7 +28162,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "42473" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "65526" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
