@@ -27,6 +27,8 @@ export class MissileAmmoManager {
                     this.lastTimeAddAmmo = elapsed;
                     this.add(1, this.defaultTextureUri);
                 }
+            } else {
+                this.lastTimeAddAmmo = elapsed;
             }
         });
     }

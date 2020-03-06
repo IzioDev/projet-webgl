@@ -27707,6 +27707,8 @@ function () {
 
           _this.add(1, _this.defaultTextureUri);
         }
+      } else {
+        _this.lastTimeAddAmmo = elapsed;
       }
     });
   };
