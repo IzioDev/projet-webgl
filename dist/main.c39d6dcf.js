@@ -8950,6 +8950,7 @@ function (_super) {
   function Splat(gl, textureUri, program, id) {
     var _this = _super.call(this) || this;
 
+    _this.onTick = null;
     _this.width = 0.2;
     _this.height = 0.2;
     _this.position = [-1.5, 1.0, 0.0];
@@ -9066,6 +9067,10 @@ function (_super) {
     }
   };
 
+  Splat.prototype.setOnTick = function (cb) {
+    this.onTick = cb;
+  };
+
   Splat.prototype.sendUniformVariables = function () {
     // envoie des variables au shader (position du splat, couleur, texture)
     // fonction appelée à chaque frame, avant le dessin du splat
@@ -9096,8 +9101,8 @@ function (_super) {
 
   Splat.prototype.clear = function () {
     // clear all GPU memory
-    this.gl.deleteBuffer(this.vertexBuffer);
-    this.gl.deleteBuffer(this.coordBuffer);
+    // this.gl.deleteBuffer(this.vertexBuffer);
+    // this.gl.deleteBuffer(this.coordBuffer);
     this.gl.deleteVertexArray(this.vao);
     this.loaded = false;
   };
@@ -26889,6 +26894,10 @@ function () {
     setTimeout(function () {
       window.requestAnimationFrame(_this.tick.bind(_this));
 
+      _this.onTickHandlers.forEach(function (tickHandler) {
+        return tickHandler(_this.lastTime);
+      });
+
       _this.handleKeys();
 
       _this.drawScene();
@@ -26955,7 +26964,11 @@ function () {
         model.setParameters(elapsed_1);
       });
       this.splats.forEach(function (splat) {
-        splat.setParameters(elapsed_1);
+        if (splat.onTick === null) {
+          splat.setParameters(elapsed_1);
+        } else {
+          splat.onTick(elapsed_1);
+        }
       });
 
       if (this.background) {
@@ -27652,10 +27665,92 @@ var _v3 = _interopRequireDefault(require("./v4.js"));
 var _v4 = _interopRequireDefault(require("./v5.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./v1.js":"../node_modules/uuid/dist/esm-browser/v1.js","./v3.js":"../node_modules/uuid/dist/esm-browser/v3.js","./v4.js":"../node_modules/uuid/dist/esm-browser/v4.js","./v5.js":"../node_modules/uuid/dist/esm-browser/v5.js"}],"assets/plane.obj":[function(require,module,exports) {
+},{"./v1.js":"../node_modules/uuid/dist/esm-browser/v1.js","./v3.js":"../node_modules/uuid/dist/esm-browser/v3.js","./v4.js":"../node_modules/uuid/dist/esm-browser/v4.js","./v5.js":"../node_modules/uuid/dist/esm-browser/v5.js"}],"assets/missile2.png":[function(require,module,exports) {
+module.exports = "/missile2.91a07f3f.png";
+},{}],"objects/missile-ammo-manager.ts":[function(require,module,exports) {
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var uuid = require("uuid");
+
+var MissileAmmoManager =
+/** @class */
+function () {
+  // @ts-ignore
+  function MissileAmmoManager(scene, defaultTextureUri) {
+    if (defaultTextureUri === void 0) {
+      defaultTextureUri = require("../assets/missile2.png");
+    }
+
+    this.scene = scene;
+    this.defaultTextureUri = defaultTextureUri;
+    this.ammo = [];
+    this.maxAmmoNumber = 3;
+    this.lastTimeAddAmmo = 0;
+    this.initTick();
+  }
+
+  MissileAmmoManager.prototype.initTick = function () {
+    var _this = this;
+
+    this.scene.addOnTickHandler(function (elapsed) {
+      if (_this.getLeftCount() < _this.maxAmmoNumber) {
+        if (_this.lastTimeAddAmmo === 0) {
+          _this.lastTimeAddAmmo = elapsed;
+        }
+
+        if (elapsed - _this.lastTimeAddAmmo > 2000) {
+          _this.lastTimeAddAmmo = elapsed;
+
+          _this.add(1, _this.defaultTextureUri);
+        }
+      }
+    });
+  };
+
+  MissileAmmoManager.prototype.add = function (n, textureUri) {
+    var _this = this;
+
+    for (var i = 1; i <= n; i++) {
+      this.scene.addSplatFromUri(textureUri, "ammo-" + uuid.v4()).then(function (splat) {
+        _this.ammo.push({
+          splat: splat
+        });
+
+        splat.position = [-1.087 + 0.13 * _this.ammo.length, -0.9, 0.5];
+
+        splat.onTick = function () {
+          return null;
+        };
+      });
+    }
+  };
+
+  MissileAmmoManager.prototype.remove = function (n) {
+    if (this.ammo.length > 0) {
+      var ammo = this.ammo.pop();
+      this.scene.removeSplatFromId(ammo.splat.id);
+      ammo.splat.clear();
+    }
+  };
+
+  MissileAmmoManager.prototype.getLeftCount = function () {
+    return this.ammo.length;
+  };
+
+  MissileAmmoManager.prototype.setMaxAmmo = function (n) {
+    this.maxAmmoNumber = n;
+  };
+
+  return MissileAmmoManager;
+}();
+
+exports.MissileAmmoManager = MissileAmmoManager;
+},{"uuid":"../node_modules/uuid/dist/esm-browser/index.js","../assets/missile2.png":"assets/missile2.png"}],"assets/plane.obj":[function(require,module,exports) {
 module.exports = "/plane.f45d05b1.obj";
-},{}],"assets/missile.png":[function(require,module,exports) {
-module.exports = "/missile.bb5f239e.png";
 },{}],"main.ts":[function(require,module,exports) {
 "use strict";
 
@@ -27810,22 +27905,29 @@ var scene_1 = require("./scene");
 
 var game_utils_1 = require("./utils/game-utils");
 
-var uuid_1 = require("uuid"); // @ts-ignore
+var uuid_1 = require("uuid");
+
+var missile_ammo_manager_1 = require("./objects/missile-ammo-manager"); // @ts-ignore
 
 
 var planeObjUri = require("./assets/plane.obj"); // @ts-ignore
 
 
-var missileTextureImageUri = require("./assets/missile.png");
+var missileTextureImageUri = require("./assets/missile2.png");
 
 document.addEventListener("DOMContentLoaded", function () {
   return __awaiter(void 0, void 0, void 0, function () {
-    var canvas, gl, lastTimeSpawnMissile, scene;
+    var canvas, clientHeight, gl, lastTimeShootMissile, scene, missileAmmoManager;
     return __generator(this, function (_a) {
       canvas = document.getElementById("super-soccer-canvas");
+      clientHeight = document.documentElement.clientHeight;
+      canvas.height = clientHeight;
+      canvas.width = clientHeight;
       gl = game_utils_1.initWebGL(canvas);
-      lastTimeSpawnMissile = 0;
+      lastTimeShootMissile = 0;
       scene = new scene_1.Scene(gl);
+      missileAmmoManager = new missile_ammo_manager_1.MissileAmmoManager(scene);
+      missileAmmoManager.add(3, missileTextureImageUri);
       scene.setBackground({
         amplitude: 5,
         offset: [0.5, 0.0],
@@ -27846,8 +27948,9 @@ document.addEventListener("DOMContentLoaded", function () {
           model.move(0, -1);
         });
         model.addKeyHandler(32, function () {
-          if (scene.getTime() - lastTimeSpawnMissile > 1000) {
-            lastTimeSpawnMissile = scene.getTime();
+          if (scene.getTime() - lastTimeShootMissile > 1000 && missileAmmoManager.getLeftCount() > 0) {
+            missileAmmoManager.remove(1);
+            lastTimeShootMissile = scene.getTime();
             var bb = model.getBBox();
             var x_1 = (bb[0][0] + bb[1][0]) / 2;
             var y_1 = bb[1][1];
@@ -27855,6 +27958,7 @@ document.addEventListener("DOMContentLoaded", function () {
             scene.addSplatFromUri(missileTextureImageUri, uuid_1.v4()).then(function (splat) {
               splat.setPosition(x_1, y_1, z_1);
               splat.addKeyHandler(77, function () {
+                scene.removeSplatFromId(splat.id);
                 splat.clear();
               });
 
@@ -27879,7 +27983,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
-},{"./scene":"scene.ts","./utils/game-utils":"utils/game-utils.ts","uuid":"../node_modules/uuid/dist/esm-browser/index.js","./assets/plane.obj":"assets/plane.obj","./assets/missile.png":"assets/missile.png"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"./scene":"scene.ts","./utils/game-utils":"utils/game-utils.ts","uuid":"../node_modules/uuid/dist/esm-browser/index.js","./objects/missile-ammo-manager":"objects/missile-ammo-manager.ts","./assets/plane.obj":"assets/plane.obj","./assets/missile2.png":"assets/missile2.png"}],"../node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;

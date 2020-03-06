@@ -1,4 +1,4 @@
-import {initShaders, safeCreateBuffer} from "../utils/game-utils";
+import {safeCreateBuffer} from "../utils/game-utils";
 
 export class Background {
     backgroundShader: WebGLProgram;

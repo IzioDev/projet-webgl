@@ -89,6 +89,7 @@ export class Scene {
   tick() {
     setTimeout(() => {
       window.requestAnimationFrame(this.tick.bind(this));
+      this.onTickHandlers.forEach((tickHandler) => tickHandler(this.lastTime));
       this.handleKeys();
       this.drawScene();
       this.animate();
@@ -160,7 +161,11 @@ export class Scene {
       });
 
       this.splats.forEach((splat) => {
-        splat.setParameters(elapsed);
+        if (splat.onTick === null) {
+          splat.setParameters(elapsed);
+        } else {
+          splat.onTick(elapsed);
+        }
       });
 
       if (this.background) {

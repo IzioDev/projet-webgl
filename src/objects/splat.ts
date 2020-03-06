@@ -8,6 +8,8 @@ export class Splat extends KeyHandler {
     gl: WebGL2RenderingContext;
     shader: WebGLProgram;
 
+    onTick: Function | null = null;
+
     vao: WebGLVertexArrayObject;
     vertexBuffer: WebGLVertexArrayObject;
     coordBuffer: WebGLVertexArrayObject;
@@ -116,6 +118,10 @@ export class Splat extends KeyHandler {
         }
     }
 
+    setOnTick(cb: Function){
+        this.onTick = cb;
+    }
+
     sendUniformVariables() {
         // envoie des variables au shader (position du splat, couleur, texture)
         // fonction appelée à chaque frame, avant le dessin du splat
@@ -144,8 +150,8 @@ export class Splat extends KeyHandler {
 
     clear() {
         // clear all GPU memory
-        this.gl.deleteBuffer(this.vertexBuffer);
-        this.gl.deleteBuffer(this.coordBuffer);
+        // this.gl.deleteBuffer(this.vertexBuffer);
+        // this.gl.deleteBuffer(this.coordBuffer);
         this.gl.deleteVertexArray(this.vao);
         this.loaded = false;
     }

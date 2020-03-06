@@ -7,6 +7,7 @@
     <style>
         html, body {
             margin: 0;
+            overflow: hidden;
         }
     </style>
 </head>
@@ -100,10 +101,7 @@
         vec3 n = computeNormal(p); // normale au point p
 
         // affichage de la profondeur
-        outColor = vec4(d,d,d,1.0);
-
-        // affichage de la normale
-        //outColor = vec4(n,1.0);
+        outColor = vec4(n[1] * 0.4 * d , 0.7 * n[2], 0.25 * n[0],1.0);
     }
     </script>
 
