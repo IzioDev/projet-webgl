@@ -8966,6 +8966,10 @@ function (_super) {
       return null;
     };
 
+    _this._onCollide = function () {
+      return null;
+    };
+
     _this.initTexture = function (filePath) {
       var gl = _this.gl;
       var texture = game_utils_1.safeCreateTexture(gl);
@@ -9106,6 +9110,10 @@ function (_super) {
     this.loaded = false;
   };
 
+  Splat.prototype.isAmmoSplat = function () {
+    return this.id.indexOf("ammo") !== -1;
+  };
+
   Splat.initProgram = function (gl, program) {
     // active ce shader
     gl.useProgram(program); // adresse des variables uniform dans le shader
@@ -9124,6 +9132,16 @@ function (_super) {
     },
     set: function set(value) {
       this._onLeaveViewport = value;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  Object.defineProperty(Splat.prototype, "onCollide", {
+    get: function get() {
+      return this._onCollide;
+    },
+    set: function set(value) {
+      this._onCollide = value;
     },
     enumerable: true,
     configurable: true
@@ -26902,7 +26920,50 @@ function () {
       _this.drawScene();
 
       _this.animate();
+
+      _this.collisionChecker();
     }, 1000 / 60);
+  };
+
+  Scene.prototype.collisionChecker = function () {
+    // This could impact performance on massive splats. But for our usage, we're fine.
+    for (var _i = 0, _a = this.splats; _i < _a.length; _i++) {
+      var splat1 = _a[_i]; // ignore collision with ammo
+
+      if (splat1.isAmmoSplat()) {
+        continue;
+      }
+
+      for (var _b = 0, _c = this.splats; _b < _c.length; _b++) {
+        var splat2 = _c[_b]; // ignore collision with ammo
+
+        if (splat2.isAmmoSplat()) {
+          continue;
+        } // Ignore if splat1 = splat2 (same object)
+
+
+        if (splat1.id === splat2.id) {
+          continue;
+        } // Retrieve the base position
+
+
+        var _d = splat1.position,
+            s1xBase = _d[0],
+            s1yBase = _d[1];
+        var _e = splat2.position,
+            s2xBase = _e[0],
+            s2yBase = _e[1];
+        var s1xEnd = s1xBase + splat1.width;
+        var s1yEnd = s1yBase + splat1.height;
+        var s2xEnd = s2xBase + splat2.width;
+        var s2yEnd = s2yBase + splat2.height; // if splats collide
+
+        if (s1xBase <= s2xEnd && s1xEnd > s2xEnd && s1yBase < s2yEnd && s1yEnd > s2yBase) {
+          splat1.onCollide(splat2);
+          splat2.onCollide(splat1);
+        }
+      }
+    }
   };
 
   Scene.prototype.handleKeys = function () {
@@ -27800,7 +27861,7 @@ function () {
       if (elapsed - _this.lastTimeEnemyCheck > 3000) {
         _this.lastTimeEnemyCheck = elapsed;
 
-        _this.add(Math.random() * 3);
+        _this.add(Math.random() * 4);
       }
     });
   }
@@ -27835,7 +27896,7 @@ function () {
   EnemyManager.prototype.recFindGoodPosition = function () {
     var desiredPosition = Math.random() * 2 - 1;
     var nearEnemies = this.enemies.filter(function (splat) {
-      return Math.abs(splat.splat.position[0] - desiredPosition) <= 0.25;
+      return Math.abs(splat.splat.position[0] - desiredPosition) <= 0.2 && Math.abs(splat.splat.position[1] - 1) <= 0.2;
     });
 
     if (nearEnemies.length > 0) {
@@ -28094,6 +28155,8 @@ document.addEventListener("DOMContentLoaded", function () {
               model.move(0, -1);
             });
             model.addKeyHandler(32, function () {
+              var _a;
+
               if (scene.getTime() - lastTimeShootMissile > 500 && missileAmmoManager.getLeftCount() > 0) {
                 missileAmmoManager.removeOne();
                 lastTimeShootMissile = scene.getTime();
@@ -28101,16 +28164,40 @@ document.addEventListener("DOMContentLoaded", function () {
                 var x_1 = (bb[0][0] + bb[1][0]) / 2;
                 var y_1 = bb[1][1];
                 var z_1 = bb[1][2] + 0.005;
-                scene.addSplatFromUri(missileTextureImageUri, uuid_1.v4()).then(function (splat) {
+                (_a = scene) === null || _a === void 0 ? void 0 : _a.addSplatFromUri(missileTextureImageUri, uuid_1.v4()).then(function (splat) {
                   splat.setPosition(x_1, y_1, z_1);
                   splat.addKeyHandler(77, function () {
-                    scene.removeSplatFromId(splat.id);
+                    var _a;
+
+                    (_a = scene) === null || _a === void 0 ? void 0 : _a.removeSplatFromId(splat.id);
                     splat.clear();
                   });
 
                   splat.onLeaveViewport = function (_) {
-                    scene.removeSplatFromId(splat.id);
+                    var _a;
+
+                    (_a = scene) === null || _a === void 0 ? void 0 : _a.removeSplatFromId(splat.id);
                     splat.clear();
+                  };
+
+                  splat.onCollide = function (collidedSplat) {
+                    var _a, _b, _c;
+
+                    (_a = scene) === null || _a === void 0 ? void 0 : _a.removeSplatFromId(splat.id);
+                    splat.clear();
+                    (_b = scene) === null || _b === void 0 ? void 0 : _b.removeSplatFromId(collidedSplat.id);
+                    collidedSplat.clear();
+                    var pointsSpan = document.getElementById("points-number");
+
+                    if (pointsSpan === null || pointsSpan.textContent === null) {
+                      return;
+                    }
+
+                    if (((_c = enemyManager) === null || _c === void 0 ? void 0 : _c.preferredEnemyType) === enemy_manager_1.EEnemy.MACRON) {
+                      pointsSpan.textContent = "" + (+pointsSpan.textContent + 1);
+                    } else {
+                      pointsSpan.textContent = "" + (+pointsSpan.textContent + 3);
+                    }
                   };
                 });
               }
@@ -28162,7 +28249,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "65526" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50787" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

@@ -93,7 +93,48 @@ export class Scene {
       this.handleKeys();
       this.drawScene();
       this.animate();
+      this.collisionChecker();
     }, 1000 / 60);
+  }
+
+  collisionChecker() {
+    // This could impact performance on massive splats. But for our usage, we're fine.
+    for (const splat1 of this.splats) {
+
+      // ignore collision with ammo
+      if (splat1.isAmmoSplat()) {
+        continue;
+      }
+
+      for (const splat2 of this.splats) {
+
+        // ignore collision with ammo
+        if (splat2.isAmmoSplat()) {
+          continue;
+        }
+
+        // Ignore if splat1 = splat2 (same object)
+        if (splat1.id === splat2.id) {
+          continue;
+        }
+
+        // Retrieve the base position
+        const [s1xBase, s1yBase] = splat1.position;
+        const [s2xBase, s2yBase] = splat2.position;
+
+        const s1xEnd = s1xBase + splat1.width;
+        const s1yEnd = s1yBase + splat1.height;
+
+        const s2xEnd = s2xBase + splat2.width;
+        const s2yEnd = s2yBase + splat2.height;
+
+        // if splats collide
+        if ( ((s1xBase <= s2xEnd) && (s1xEnd > s2xEnd)) && ( (s1yBase < s2yEnd) && (s1yEnd > s2yBase))) {
+          splat1.onCollide(splat2);
+          splat2.onCollide(splat1);
+        }
+      }
+    }
   }
 
   handleKeys() {

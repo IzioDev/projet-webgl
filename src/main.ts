@@ -82,16 +82,34 @@ document.addEventListener("DOMContentLoaded", async () => {
         const y = bb[1][1];
         const z = bb[1][2] + 0.005;
 
-        scene.addSplatFromUri(missileTextureImageUri, uuidv4()).then(splat => {
+        scene?.addSplatFromUri(missileTextureImageUri, uuidv4()).then(splat => {
           splat.setPosition(x, y, z);
           splat.addKeyHandler(77, () => {
-            scene.removeSplatFromId(splat.id);
+            scene?.removeSplatFromId(splat.id);
             splat.clear();
           });
           splat.onLeaveViewport = (_: number[]) => {
-            scene.removeSplatFromId(splat.id);
+            scene?.removeSplatFromId(splat.id);
             splat.clear();
           };
+          splat.onCollide = (collidedSplat => {
+            scene?.removeSplatFromId(splat.id);
+            splat.clear();
+
+            scene?.removeSplatFromId(collidedSplat.id);
+            collidedSplat.clear();
+
+            const pointsSpan = document.getElementById("points-number");
+            if (pointsSpan === null || pointsSpan.textContent === null) {
+              return;
+            }
+
+            if (enemyManager?.preferredEnemyType === EEnemy.MACRON) {
+              pointsSpan.textContent = `${+pointsSpan.textContent + 1}`;
+            } else {
+              pointsSpan.textContent = `${+pointsSpan.textContent + 3}`;
+            }
+          })
         });
       }
     });

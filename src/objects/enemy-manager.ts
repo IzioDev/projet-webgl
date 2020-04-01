@@ -31,7 +31,7 @@ export class EnemyManager {
       }
       if (elapsed - this.lastTimeEnemyCheck > 3000) {
         this.lastTimeEnemyCheck = elapsed;
-        this.add(Math.random() * 3);
+        this.add(Math.random() * 4);
       }
     });
   }
@@ -61,7 +61,7 @@ export class EnemyManager {
     const desiredPosition = Math.random() * 2 - 1;
 
     const nearEnemies = this.enemies.filter(splat => {
-      return Math.abs(splat.splat.position[0] - desiredPosition) <= 0.25;
+      return (Math.abs(splat.splat.position[0] - desiredPosition) <= 0.2) && (Math.abs(splat.splat.position[1] - 1) <= 0.2);
     });
 
     if (nearEnemies.length > 0) {

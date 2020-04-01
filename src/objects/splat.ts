@@ -43,6 +43,7 @@ export class Splat extends KeyHandler {
     loaded = false;
 
     private _onLeaveViewport: Function = () => null;
+    private _onCollide: (splat: Splat) => void = () => null;
 
     constructor(gl: WebGL2RenderingContext, textureUri: string, program: WebGLProgram, id: string) {
         super();
@@ -156,6 +157,10 @@ export class Splat extends KeyHandler {
         this.loaded = false;
     }
 
+    isAmmoSplat() {
+        return this.id.indexOf("ammo") !== -1;
+    }
+
     static initProgram (gl: WebGL2RenderingContext, program: WebGLProgram) {
         // active ce shader
         gl.useProgram(program);
@@ -240,5 +245,13 @@ export class Splat extends KeyHandler {
 
     set onLeaveViewport(value: Function) {
         this._onLeaveViewport = value;
+    }
+
+    get onCollide() {
+        return this._onCollide;
+    }
+
+    set onCollide(value: (splat: Splat) => void) {
+        this._onCollide = value;
     }
 }
