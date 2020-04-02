@@ -8581,6 +8581,11 @@ function (_super) {
     _this.col = [0.2, 0.6, 0.5];
     _this.light = [0.0, 0.0, 0.5];
     _this.loaded = false;
+
+    _this._onCollide = function () {
+      return null;
+    };
+
     _this.gl = gl;
     _this.textureUri = textureUri;
     _this.shader = program;
@@ -8900,6 +8905,16 @@ function (_super) {
     return program;
   };
 
+  Object.defineProperty(Model.prototype, "onCollide", {
+    get: function get() {
+      return this._onCollide;
+    },
+    set: function set(value) {
+      this._onCollide = value;
+    },
+    enumerable: true,
+    configurable: true
+  });
   return Model;
 }(key_handler_1.KeyHandler);
 
@@ -9112,6 +9127,10 @@ function (_super) {
 
   Splat.prototype.isAmmoSplat = function () {
     return this.id.indexOf("ammo") !== -1;
+  };
+
+  Splat.prototype.isMissileSplat = function () {
+    return this.id.indexOf("missile") !== -1;
   };
 
   Splat.initProgram = function (gl, program) {
@@ -26841,6 +26860,7 @@ function () {
     this.onTickHandlers = [];
     this.currentlyPressed = {};
     this.lastTime = 0;
+    this.started = false;
     this.gl = gl;
     this.shaderManager = new shader_manager_1.ShaderManager(gl);
 
@@ -26911,17 +26931,19 @@ function () {
     setTimeout(function () {
       window.requestAnimationFrame(_this.tick.bind(_this));
 
-      _this.onTickHandlers.forEach(function (tickHandler) {
-        return tickHandler(_this.lastTime);
-      });
+      if (_this.started) {
+        _this.onTickHandlers.forEach(function (tickHandler) {
+          return tickHandler(_this.lastTime);
+        });
 
-      _this.handleKeys();
+        _this.handleKeys();
 
-      _this.drawScene();
+        _this.drawScene();
 
-      _this.animate();
+        _this.animate();
 
-      _this.collisionChecker();
+        _this.collisionChecker();
+      }
     }, 1000 / 60);
   };
 
@@ -26958,9 +26980,33 @@ function () {
         var s2xEnd = s2xBase + splat2.width;
         var s2yEnd = s2yBase + splat2.height; // if splats collide
 
-        if (s1xBase <= s2xEnd && s1xEnd > s2xEnd && s1yBase < s2yEnd && s1yEnd > s2yBase) {
+        if (s1xBase <= s2xEnd && s1xEnd > s2xBase && s1yBase < s2yEnd && s1yEnd > s2yBase) {
           splat1.onCollide(splat2);
           splat2.onCollide(splat1);
+        }
+      }
+
+      for (var _f = 0, _g = this.models; _f < _g.length; _f++) {
+        var model = _g[_f];
+        var bbox = model.getBBox();
+        var _h = bbox[0],
+            modelxStart = _h[0],
+            modelyStart = _h[1],
+            _j = bbox[1],
+            modelxEnd = _j[0],
+            modelyEnd = _j[1]; // If the splat comparator is not one of
+
+        if (!splat1.isAmmoSplat() && !splat1.isMissileSplat()) {
+          // Retrieve the base position
+          var _k = splat1.position,
+              s1xBase = _k[0],
+              s1yBase = _k[1];
+          var s1xEnd = s1xBase + splat1.width;
+          var s1yEnd = s1yBase + splat1.height; // if model collide
+
+          if (s1xBase <= modelxEnd && s1xEnd > modelxStart && s1yBase < modelyEnd && s1yEnd > modelyStart) {
+            model.onCollide(splat1);
+          }
         }
       }
     }
@@ -27050,6 +27096,10 @@ function () {
 
   Scene.prototype.removeOnTickHandler = function (id) {
     this.onTickHandlers.splice(id, 1);
+  };
+
+  Scene.prototype.setStarted = function (value) {
+    this.started = value;
   };
 
   return Scene;
@@ -28111,16 +28161,22 @@ document.addEventListener("DOMContentLoaded", function () {
   return __awaiter(void 0, void 0, void 0, function () {
     var canvas, clientHeight, gl, lastTimeShootMissile, missileAmmoManager;
 
-    var _a, _b;
+    var _a, _b, _c;
 
-    return __generator(this, function (_c) {
-      switch (_c.label) {
+    return __generator(this, function (_d) {
+      switch (_d.label) {
         case 0:
           (_a = document.getElementById('hollande')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', function () {
             exports.onEnemyTypeChanged(enemy_manager_1.EEnemy.HOLLANDE);
           });
           (_b = document.getElementById('macron')) === null || _b === void 0 ? void 0 : _b.addEventListener('click', function () {
             exports.onEnemyTypeChanged(enemy_manager_1.EEnemy.MACRON);
+          });
+          (_c = document.getElementById('start-button')) === null || _c === void 0 ? void 0 : _c.addEventListener('click', function () {
+            var _a;
+
+            (_a = scene) === null || _a === void 0 ? void 0 : _a.setStarted(true);
+            document.getElementById('home-screen').style.display = "none";
           });
           canvas = document.getElementById("super-soccer-canvas");
           clientHeight = document.documentElement.clientHeight;
@@ -28142,6 +28198,16 @@ document.addEventListener("DOMContentLoaded", function () {
           return [4
           /*yield*/
           , scene.addModelFromObjectUri(planeObjUri, "plane-1").then(function (model) {
+            model.onCollide = function (_) {
+              var _a;
+
+              (_a = scene) === null || _a === void 0 ? void 0 : _a.setStarted(false);
+              document.getElementById('home-screen').style.display = "flex";
+              var pointsSpan = document.getElementById("points-number");
+              document.getElementById('home-screen-text').textContent = "Perdu, score : " + pointsSpan.textContent;
+              document.getElementById('start-button').style.display = "none";
+            };
+
             model.addKeyHandler(68, function () {
               model.move(1, 0);
             });
@@ -28164,7 +28230,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 var x_1 = (bb[0][0] + bb[1][0]) / 2;
                 var y_1 = bb[1][1];
                 var z_1 = bb[1][2] + 0.005;
-                (_a = scene) === null || _a === void 0 ? void 0 : _a.addSplatFromUri(missileTextureImageUri, uuid_1.v4()).then(function (splat) {
+                (_a = scene) === null || _a === void 0 ? void 0 : _a.addSplatFromUri(missileTextureImageUri, "missile-" + uuid_1.v4()).then(function (splat) {
                   splat.setPosition(x_1, y_1, z_1);
                   splat.addKeyHandler(77, function () {
                     var _a;
@@ -28205,7 +28271,7 @@ document.addEventListener("DOMContentLoaded", function () {
           })];
 
         case 1:
-          _c.sent(); // la couleur de fond sera grise fonc�e
+          _d.sent(); // la couleur de fond sera grise fonc�e
 
 
           gl.clearColor(0.3, 0.3, 0.3, 1.0); // active le test de profondeur
@@ -28249,7 +28315,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50787" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51851" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

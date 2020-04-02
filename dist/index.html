@@ -23,6 +23,34 @@
 
         img.clickable:hover {
             cursor: pointer;
+        }
+
+        .btn:not(:disabled):not(.disabled) {
+            cursor: pointer;
+        }
+
+        .btn-success {
+            color: #fff;
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: .375rem .75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: .25rem;
+            transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
         }</style>
 </head>
 <body>
@@ -220,6 +248,13 @@
         <p style="margin-left: 6px; margin-top: 6px; color: white">Score : <span style="font-weight: 700" id="points-number">0</span></p>
     </div>
 
+    <div id="home-screen" style="position: absolute; top: 0; left: 0; height: 100vh; width: 100vh; opacity: 0.8; background-color: black; display: flex; justify-content: center; align-items: center; ">
+        <div>
+            <h1 id="home-screen-text" style="color: white; text-align: center">Prêt à affronter l'elite ?</h1>
+            <button id="start-button" style="width: 100%;" class="btn btn-success">OUI</button>
+        </div>
+
+    </div>
 
 </body>
 </html>

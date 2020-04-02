@@ -161,6 +161,10 @@ export class Splat extends KeyHandler {
         return this.id.indexOf("ammo") !== -1;
     }
 
+    isMissileSplat() {
+        return this.id.indexOf("missile") !== -1;
+    }
+
     static initProgram (gl: WebGL2RenderingContext, program: WebGLProgram) {
         // active ce shader
         gl.useProgram(program);

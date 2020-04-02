@@ -60,6 +60,8 @@ export class Model extends KeyHandler {
   viewMatrix;
   projMatrix;
 
+  private _onCollide: (splat: Splat) => void = () => null;
+
   constructor(
     gl: WebGL2RenderingContext,
     textureUri: string,
@@ -484,5 +486,13 @@ export class Model extends KeyHandler {
 
     console.log("model shader initialized");
     return program;
+  }
+
+  get onCollide() {
+    return this._onCollide;
+  }
+
+  set onCollide(value: (splat: Splat) => void) {
+    this._onCollide = value;
   }
 }

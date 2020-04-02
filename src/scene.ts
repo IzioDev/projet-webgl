@@ -29,6 +29,8 @@ export class Scene {
 
   lastTime = 0;
 
+  started = false;
+
   constructor(
     gl: WebGL2RenderingContext,
   ) {
@@ -89,11 +91,13 @@ export class Scene {
   tick() {
     setTimeout(() => {
       window.requestAnimationFrame(this.tick.bind(this));
-      this.onTickHandlers.forEach((tickHandler) => tickHandler(this.lastTime));
-      this.handleKeys();
-      this.drawScene();
-      this.animate();
-      this.collisionChecker();
+      if (this.started) {
+        this.onTickHandlers.forEach((tickHandler) => tickHandler(this.lastTime));
+        this.handleKeys();
+        this.drawScene();
+        this.animate();
+        this.collisionChecker();
+      }
     }, 1000 / 60);
   }
 
@@ -129,9 +133,26 @@ export class Scene {
         const s2yEnd = s2yBase + splat2.height;
 
         // if splats collide
-        if ( ((s1xBase <= s2xEnd) && (s1xEnd > s2xEnd)) && ( (s1yBase < s2yEnd) && (s1yEnd > s2yBase))) {
+        if ( ((s1xBase <= s2xEnd) && (s1xEnd > s2xBase)) && ( (s1yBase < s2yEnd) && (s1yEnd > s2yBase))) {
           splat1.onCollide(splat2);
           splat2.onCollide(splat1);
+        }
+      }
+
+      for (const model of this.models) {
+        const bbox = model.getBBox();
+        const [[modelxStart, modelyStart], [modelxEnd, modelyEnd]] = bbox;
+        // If the splat comparator is not one of
+        if (!splat1.isAmmoSplat() && !splat1.isMissileSplat()) {
+          // Retrieve the base position
+          const [s1xBase, s1yBase] = splat1.position;
+          const s1xEnd = s1xBase + splat1.width;
+          const s1yEnd = s1yBase + splat1.height;
+
+          // if model collide
+          if ( ((s1xBase <= modelxEnd) && (s1xEnd > modelxStart)) && ( (s1yBase < modelyEnd) && (s1yEnd > modelyStart))) {
+            model.onCollide(splat1);
+          }
         }
       }
     }
@@ -228,5 +249,9 @@ export class Scene {
 
   removeOnTickHandler(id: number) {
     this.onTickHandlers.splice(id, 1);
+  }
+
+  setStarted(value: boolean) {
+    this.started = value;
   }
 }

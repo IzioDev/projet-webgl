@@ -25,6 +25,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     onEnemyTypeChanged(EEnemy.MACRON);
   });
 
+  document.getElementById('start-button')?.addEventListener('click', () => {
+    scene?.setStarted(true);
+    document.getElementById('home-screen')!.style.display = "none";
+  });
+
   const canvas: HTMLCanvasElement = document.getElementById(
     "super-soccer-canvas"
   ) as HTMLCanvasElement;
@@ -53,6 +58,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   await scene.addModelFromObjectUri(planeObjUri, "plane-1").then(model => {
+    model.onCollide = ( _ => {
+      scene?.setStarted(false);
+      document.getElementById('home-screen')!.style.display = "flex";
+      const pointsSpan = document.getElementById("points-number")!;
+      document.getElementById('home-screen-text')!.textContent = `Perdu, score : ${pointsSpan.textContent}`;
+      document.getElementById('start-button')!.style.display = "none";
+    });
+
     model.addKeyHandler(68, () => {
       model.move(1, 0);
     });
@@ -82,7 +95,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const y = bb[1][1];
         const z = bb[1][2] + 0.005;
 
-        scene?.addSplatFromUri(missileTextureImageUri, uuidv4()).then(splat => {
+        scene?.addSplatFromUri(missileTextureImageUri, `missile-${uuidv4()}`).then(splat => {
           splat.setPosition(x, y, z);
           splat.addKeyHandler(77, () => {
             scene?.removeSplatFromId(splat.id);
