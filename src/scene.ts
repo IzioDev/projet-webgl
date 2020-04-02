@@ -2,7 +2,7 @@ import {Background} from "./objects/background";
 import {Model} from "./objects/model";
 import {Splat} from "./objects/splat";
 import {EShaderType, ShaderManager} from "./objects/shader-manager";
-import { pathOr } from 'ramda';
+import {pathOr} from "ramda";
 
 export interface IBackgroundOptions {
   offset?: number[];
@@ -31,9 +31,7 @@ export class Scene {
 
   started = false;
 
-  constructor(
-    gl: WebGL2RenderingContext,
-  ) {
+  constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
 
     this.shaderManager = new ShaderManager(gl);
@@ -51,14 +49,30 @@ export class Scene {
   }
 
   setBackground(options?: IBackgroundOptions) {
-    const backgroundProgram = this.shaderManager.loadOrGetLoadedShader("background-vs", "background-fs", EShaderType.BACKGROUND);
+    const backgroundProgram = this.shaderManager.loadOrGetLoadedShader(
+      "background-vs",
+      "background-fs",
+      EShaderType.BACKGROUND
+    );
 
     const background = new Background(this.gl, backgroundProgram);
     if (options) {
-      background.frequency = pathOr(background.frequency,["frequency"], options);
-      background.offset = pathOr(background.offset,["offset"], options);
-      background.persistence = pathOr(background.persistence,["persistence"], options);
-      background.amplitude = pathOr(background.amplitude,["amplitude"], options);
+      background.frequency = pathOr(
+        background.frequency,
+        ["frequency"],
+        options
+      );
+      background.offset = pathOr(background.offset, ["offset"], options);
+      background.persistence = pathOr(
+        background.persistence,
+        ["persistence"],
+        options
+      );
+      background.amplitude = pathOr(
+        background.amplitude,
+        ["amplitude"],
+        options
+      );
     }
 
     this.background = background;
@@ -66,7 +80,11 @@ export class Scene {
 
   addModelFromObjectUri(objectUri: string, id: string): Promise<Model> {
     return new Promise((res, _) => {
-      const modelProgram = this.shaderManager.loadOrGetLoadedShader("model-vs", "model-fs", EShaderType.MODEL);
+      const modelProgram = this.shaderManager.loadOrGetLoadedShader(
+        "model-vs",
+        "model-fs",
+        EShaderType.MODEL
+      );
       const model = new Model(this.gl, objectUri, modelProgram, id);
       model.load().then(() => {
         this.models.push(model);
@@ -77,7 +95,11 @@ export class Scene {
 
   addSplatFromUri(splatUri: string, id: string): Promise<Splat> {
     return new Promise((res, _) => {
-      const splatProgram = this.shaderManager.loadOrGetLoadedShader("splat-vs", "splat-fs", EShaderType.SPLAT);
+      const splatProgram = this.shaderManager.loadOrGetLoadedShader(
+        "splat-vs",
+        "splat-fs",
+        EShaderType.SPLAT
+      );
       const splat = new Splat(this.gl, splatUri, splatProgram, id);
       this.splats.push(splat);
       res(splat);
@@ -85,14 +107,14 @@ export class Scene {
   }
 
   removeSplatFromId(id: string) {
-    this.splats = this.splats.filter((splat) => splat.id !== id);
+    this.splats = this.splats.filter(splat => splat.id !== id);
   }
 
   tick() {
     setTimeout(() => {
       window.requestAnimationFrame(this.tick.bind(this));
       if (this.started) {
-        this.onTickHandlers.forEach((tickHandler) => tickHandler(this.lastTime));
+        this.onTickHandlers.forEach(tickHandler => tickHandler(this.lastTime));
         this.handleKeys();
         this.drawScene();
         this.animate();
@@ -104,14 +126,12 @@ export class Scene {
   collisionChecker() {
     // This could impact performance on massive splats. But for our usage, we're fine.
     for (const splat1 of this.splats) {
-
       // ignore collision with ammo
       if (splat1.isAmmoSplat()) {
         continue;
       }
 
       for (const splat2 of this.splats) {
-
         // ignore collision with ammo
         if (splat2.isAmmoSplat()) {
           continue;
@@ -133,7 +153,12 @@ export class Scene {
         const s2yEnd = s2yBase + splat2.height;
 
         // if splats collide
-        if ( ((s1xBase <= s2xEnd) && (s1xEnd > s2xBase)) && ( (s1yBase < s2yEnd) && (s1yEnd > s2yBase))) {
+        if (
+          s1xBase <= s2xEnd &&
+          s1xEnd > s2xBase &&
+          s1yBase < s2yEnd &&
+          s1yEnd > s2yBase
+        ) {
           splat1.onCollide(splat2);
           splat2.onCollide(splat1);
         }
@@ -150,7 +175,12 @@ export class Scene {
           const s1yEnd = s1yBase + splat1.height;
 
           // if model collide
-          if ( ((s1xBase <= modelxEnd) && (s1xEnd > modelxStart)) && ( (s1yBase < modelyEnd) && (s1yEnd > modelyStart))) {
+          if (
+            s1xBase <= modelxEnd &&
+            s1xEnd > modelxStart &&
+            s1yBase < modelyEnd &&
+            s1yEnd > modelyStart
+          ) {
             model.onCollide(splat1);
           }
         }
@@ -159,24 +189,24 @@ export class Scene {
   }
 
   handleKeys() {
-    this.models.forEach((model) => {
-      model.keyHandlers.forEach((keyHandler) => {
+    this.models.forEach(model => {
+      model.keyHandlers.forEach(keyHandler => {
         if (this.currentlyPressed[keyHandler.key]) {
           keyHandler.cb();
         }
-      })
+      });
     });
-    this.splats.forEach((splat) => {
-      splat.keyHandlers.forEach((keyHandler) => {
+    this.splats.forEach(splat => {
+      splat.keyHandlers.forEach(keyHandler => {
         if (this.currentlyPressed[keyHandler.key]) {
           keyHandler.cb();
         }
-      })
+      });
     });
   }
 
   drawScene() {
-    const { gl } = this;
+    const {gl} = this;
     // initialisation du viewport
     gl.viewport(
       0,
@@ -218,11 +248,11 @@ export class Scene {
     if (this.lastTime != 0) {
       const elapsed = timeNow - this.lastTime;
 
-      this.models.forEach((model) => {
+      this.models.forEach(model => {
         model.setParameters(elapsed);
       });
 
-      this.splats.forEach((splat) => {
+      this.splats.forEach(splat => {
         if (splat.onTick === null) {
           splat.setParameters(elapsed);
         } else {
@@ -233,7 +263,6 @@ export class Scene {
       if (this.background) {
         this.background.setParameters(elapsed);
       }
-
     }
     this.lastTime = timeNow;
   }

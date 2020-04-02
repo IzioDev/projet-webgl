@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Super Soccer: Infinity</title>
+    <title>Infinite shooter : Elite</title>
 
     <style>html, body {
             margin: 0;
@@ -50,211 +50,211 @@
             font-size: 1rem;
             line-height: 1.5;
             border-radius: .25rem;
-            transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+            transition: color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
         }</style>
 </head>
 <body>
-    <script id="background-vs" type="x-shader/x-vertex">#version 300 es
-    // *** le vertex shader ***
-    layout(location=0) in vec3 aVertexPosition; // la position du sommet
-    layout(location=1) in vec2 aVertexCoord; // sa coordonnee de texture
+<script id="background-vs" type="x-shader/x-vertex">#version 300 es
+// *** le vertex shader ***
+layout(location=0) in vec3 aVertexPosition;// la position du sommet
+layout(location=1) in vec2 aVertexCoord;// sa coordonnee de texture
 
-    out vec2 vTextureCoord; // on souhaite rasteriser la coordonnee
-    void main(void) {
-        // projection de la position
-        gl_Position = vec4(aVertexPosition, 1.0);
+out vec2 vTextureCoord;// on souhaite rasteriser la coordonnee
+void main(void) {
+    // projection de la position
+    gl_Position = vec4(aVertexPosition, 1.0);
 
-        // stockage de la coordonnee de texture
-        vTextureCoord = aVertexCoord;
+    // stockage de la coordonnee de texture
+    vTextureCoord = aVertexCoord;
+}
+</script>
+
+<script id="background-fs" type="x-shader/x-fragment">#version 300 es
+// *** le fragment shader ***
+precision highp float;// precision des nombres flottant
+
+uniform vec2 uOffset;
+uniform float uAmplitude;// amplitude du bruit
+uniform float uFrequency;// frequence du bruit
+uniform float uPersistence;// persistence du bruit
+
+in vec2 vTextureCoord;// recuperation de la coord rasterisee
+out vec4 outColor;
+
+vec2 hash22(vec2 p) {
+    vec2 q = vec2(dot(p, vec2(127.1, 311.7)),
+    dot(p, vec2(269.5, 183.3)));
+    return fract(sin(q)*43758.5453123)*2.-1.;
+}
+
+float gnoise(in vec2 x) {
+    vec2 p = floor(x);
+    vec2 f = fract(x);
+    vec2 m = f*f*(3.-2.*f);
+
+    return mix(
+    mix(dot(hash22(p+vec2(0., 0.)), f-vec2(0., 0.)),
+    dot(hash22(p+vec2(1., 0.)), f-vec2(1., 0.)), m.x),
+    mix(dot(hash22(p+vec2(0., 1.)), f-vec2(0., 1.)),
+    dot(hash22(p+vec2(1., 1.)), f-vec2(1., 1.)), m.x), m.y);
+}
+
+float fractalNoise(in vec2 p) {
+    const int nb = 5;// nb octave
+    float f = uFrequency;// frequency
+    float a = uAmplitude;// amplitude
+    float e = uPersistence;// persistence
+    float n = 0.0;
+    for (int i=0;i<nb;++i) {
+        n = n + a*gnoise(p*f);
+        f = 2.0*f;
+        a = a*e;
     }
-    </script>
+    return n;
+}
 
-    <script id="background-fs" type="x-shader/x-fragment">#version 300 es
-    // *** le fragment shader ***
-    precision highp float; // precision des nombres flottant
+float computeHeight(in vec2 p) {
+    // vous pouvez modifier cette fonction comme vous
+    // le souhaitez pour fabriquer votre propre background
+    return fractalNoise(p)*0.5+0.5;
+}
 
-    uniform vec2 uOffset;
-    uniform float uAmplitude; // amplitude du bruit
-    uniform float uFrequency; // frequence du bruit
-    uniform float uPersistence; // persistence du bruit
+vec3 computeNormal(in vec2 p) {
+    float scale = 70.0;
+    float xp = computeHeight(p+vec2(0.001, 0.0));
+    float xm = computeHeight(p+vec2(-0.001, 0.0));
+    float yp = computeHeight(p+vec2(0.0, 0.001));
+    float ym = computeHeight(p+vec2(0.0, -0.001));
 
-    in vec2 vTextureCoord; // recuperation de la coord rasterisee
-    out vec4 outColor;
+    float gx = 0.5*(xp-xm)*scale;
+    float gy = 0.5*(yp-ym)*scale;
 
-    vec2 hash22(vec2 p) {
-        vec2 q = vec2(dot(p,vec2(127.1,311.7)),
-        dot(p,vec2(269.5,183.3)));
-        return fract(sin(q)*43758.5453123)*2.-1.;
-    }
+    vec3 v1 = normalize(vec3(1.0, 0.0, gx));
+    vec3 v2 = normalize(vec3(0.0, 1.0, gy));
 
-    float gnoise(in vec2 x) {
-        vec2 p = floor(x);
-        vec2 f = fract(x);
-        vec2 m = f*f*(3.-2.*f);
+    return cross(v1, v2);
+}
 
-        return mix(
-        mix(dot(hash22(p+vec2(0.,0.)),f-vec2(0.,0.)),
-        dot(hash22(p+vec2(1.,0.)),f-vec2(1.,0.)),m.x),
-        mix(dot(hash22(p+vec2(0.,1.)),f-vec2(0.,1.)),
-        dot(hash22(p+vec2(1.,1.)),f-vec2(1.,1.)),m.x),m.y);
-    }
+void main(void) {
+    // d�calage avec la variable uOffset
+    vec2 p = vTextureCoord*2.0-vec2(1.0)+uOffset;
 
-    float fractalNoise(in vec2 p) {
-        const int nb = 5; // nb octave
-        float f = uFrequency; // frequency
-        float a = uAmplitude; // amplitude
-        float e = uPersistence; // persistence
-        float n = 0.0;
-        for(int i=0;i<nb;++i) {
-            n = n + a*gnoise(p*f);
-            f = 2.0*f;
-            a = a*e;
-        }
-        return n;
-    }
+    float d = computeHeight(p);// profondeur au point p
+    vec3 n = computeNormal(p);// normale au point p
 
-    float computeHeight(in vec2 p) {
-        // vous pouvez modifier cette fonction comme vous
-        // le souhaitez pour fabriquer votre propre background
-        return fractalNoise(p)*0.5+0.5;
-    }
+    // affichage de la profondeur
+    outColor = vec4(n[1] * 0.4 * d, 0.7 * n[2], 0.25 * n[0], 1.0);
+}
+</script>
 
-    vec3 computeNormal(in vec2 p) {
-        float scale = 70.0;
-        float xp = computeHeight(p+vec2( 0.001,0.0));
-        float xm = computeHeight(p+vec2(-0.001,0.0));
-        float yp = computeHeight(p+vec2(0.0, 0.001));
-        float ym = computeHeight(p+vec2(0.0,-0.001));
+<script id="model-vs" type="x-shader/x-vertex">#version 300 es
+// *** le vertex shader ***
+layout(location=0) in vec3 aVertexPosition;
+layout(location=1) in vec3 aVertexNormal;
 
-        float gx = 0.5*(xp-xm)*scale;
-        float gy = 0.5*(yp-ym)*scale;
+uniform mat4 uModelMatrix;
+uniform mat4 uViewMatrix;
+uniform mat4 uProjMatrix;
 
-        vec3 v1 = normalize(vec3(1.0,0.0,gx));
-        vec3 v2 = normalize(vec3(0.0,1.0,gy));
+out vec3 vNormal;
 
-        return cross(v1,v2);
-    }
+void main(void) {
+    // projection de la position
+    gl_Position = uProjMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
+    vNormal = mat3(inverse(transpose(uViewMatrix * uModelMatrix)))*normalize(aVertexNormal);
+}
+</script>
 
-    void main(void) {
-        // d�calage avec la variable uOffset
-        vec2 p = vTextureCoord*2.0-vec2(1.0)+uOffset;
+<script id="model-fs" type="x-shader/x-fragment">#version 300 es
+// *** le fragment shader ***
+precision mediump float;// precision des nombres flottant
 
-        float d = computeHeight(p); // profondeur au point p
-        vec3 n = computeNormal(p); // normale au point p
+in vec3 vNormal;
+out vec4 outColor;
 
-        // affichage de la profondeur
-        outColor = vec4(n[1] * 0.4 * d , 0.7 * n[2], 0.25 * n[0],1.0);
-    }
-    </script>
+uniform vec3 ukd;
+uniform vec3 ul;
 
-    <script id="model-vs" type="x-shader/x-vertex">#version 300 es
-    // *** le vertex shader ***
-    layout(location=0) in vec3 aVertexPosition;
-    layout(location=1) in vec3 aVertexNormal;
+void main(void) {
 
-    uniform mat4 uModelMatrix;
-    uniform mat4 uViewMatrix;
-    uniform mat4 uProjMatrix;
+    // la couleur est attribuee au fragment courant
+    vec3 n = normalize(vNormal);
 
-    out vec3 vNormal;
+    vec3 v = vec3(0.0, 0.0, -1.0);
+    //  vec3 l = vec3(0.0,0.0,1.0);
+    vec3 l = normalize(ul);
 
-    void main(void) {
-        // projection de la position
-        gl_Position = uProjMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
-        vNormal = mat3(inverse(transpose(uViewMatrix * uModelMatrix)))*normalize(aVertexNormal);
-    }
-    </script>
+    vec3 r = reflect(l, n);
+    vec3 kd = ukd;
+    vec3 ks = vec3(1.0);
 
-    <script id="model-fs" type="x-shader/x-fragment">#version 300 es
-    // *** le fragment shader ***
-    precision mediump float; // precision des nombres flottant
+    //exposant
+    float s = 1.0;
 
-    in vec3 vNormal;
-    out vec4 outColor;
+    float diff = max(dot(l, n), 0.0);
+    float spec = pow(max(dot(r, v), 0.0), s);
 
-    uniform vec3 ukd;
-    uniform vec3 ul;
+    outColor = vec4(kd * diff + ks * spec, 1.);
+}
+</script>
 
-    void main(void) {
+<script id="splat-vs" type="x-shader/x-vertex">#version 300 es
+// *** le vertex shader ***
+layout(location=0) in vec3 aVertexPosition;// la position du sommet
+layout(location=1) in vec2 aVertexCoord;// sa coordonnee de texture
 
-        // la couleur est attribuee au fragment courant
-        vec3 n = normalize(vNormal);
+// uniform représente une variable globale (même pour tous les sommets du maillage)
+uniform vec3 uPosition;// position du vaisseau
+out vec2 vTextureCoord;// on souhaite rasteriser la coordonnee
 
-        vec3 v = vec3(0.0,0.0,-1.0);
-        //  vec3 l = vec3(0.0,0.0,1.0);
-        vec3 l = normalize(ul);
+void main(void) {
+    // projection de la position
+    gl_Position = vec4(aVertexPosition.xy+uPosition.xy, uPosition.z, 1.0);
 
-        vec3 r = reflect(l, n);
-        vec3 kd = ukd;
-        vec3 ks = vec3(1.0);
+    // stockage de la coordonnee de texture
+    vTextureCoord = aVertexCoord;
+}
+</script>
 
-        //exposant
-        float s = 1.0;
+<script id="splat-fs" type="x-shader/x-fragment">#version 300 es
+// *** le fragment shader ***
+precision highp float;// precision des nombres flottant
 
-        float diff = max(dot(l, n), 0.0);
-        float spec = pow(max(dot(r,v), 0.0), s);
+uniform vec3 maCouleur;
+uniform sampler2D uTex;
 
-        outColor = vec4(kd * diff + ks * spec,1.);
-    }
-    </script>
+in vec2 vTextureCoord;// recuperation de la coord rasterisee
+out vec4 outColor;
 
-    <script id="splat-vs" type="x-shader/x-vertex">#version 300 es
-    // *** le vertex shader ***
-    layout(location=0) in vec3 aVertexPosition; // la position du sommet
-    layout(location=1) in vec2 aVertexCoord; // sa coordonnee de texture
+void main(void) {
+    float alpha = 1.-smoothstep(0.2, 0.25, distance(vec2(.5), vTextureCoord));
 
-    // uniform représente une variable globale (même pour tous les sommets du maillage)
-    uniform vec3 uPosition; // position du vaisseau
-    out vec2 vTextureCoord; // on souhaite rasteriser la coordonnee
+    // TEST: affichae d'un point avec la couleur donn�e en param�tre
+    //outColor = vec4(alpha*maCouleur,alpha);
 
-    void main(void) {
-        // projection de la position
-        gl_Position = vec4(aVertexPosition.xy+uPosition.xy,uPosition.z, 1.0);
+    // TEST: affichage d'une texture donn�e en param�tre
+    outColor = texture(uTex, vTextureCoord);
+}
+</script>
+<canvas id="super-soccer-canvas" style="border: none; display: inline-block;" width="800" height="800">
+</canvas>
+<script src="/main.c39d6dcf.js"></script>
+<div style="position: absolute; top: 0; right: 0">
+    <img id="hollande" class="clickable ps" style="transform: rotate(180deg)" width="100" height="100" src="/hollande.7dde791e.png">
+    <img id="macron" class="clickable rem" style="transform: rotate(180deg)" width="100" height="100" src="/macron-edit.2a538bed.png">
+</div>
 
-        // stockage de la coordonnee de texture
-        vTextureCoord = aVertexCoord;
-    }
-    </script>
+<div style="position: absolute; top: 0; left: 0">
+    <p style="margin-left: 6px; margin-top: 6px; color: white">Score : <span style="font-weight: 700" id="points-number">0</span></p>
+</div>
 
-    <script id="splat-fs" type="x-shader/x-fragment">#version 300 es
-    // *** le fragment shader ***
-    precision highp float; // precision des nombres flottant
-
-    uniform vec3 maCouleur;
-    uniform sampler2D uTex;
-
-    in vec2 vTextureCoord; // recuperation de la coord rasterisee
-    out vec4 outColor;
-
-    void main(void) {
-        float alpha = 1.-smoothstep(0.2,0.25,distance(vec2(.5),vTextureCoord));
-
-        // TEST: affichae d'un point avec la couleur donn�e en param�tre
-        //outColor = vec4(alpha*maCouleur,alpha);
-
-        // TEST: affichage d'une texture donn�e en param�tre
-        outColor = texture(uTex,vTextureCoord);
-    }
-    </script>
-    <canvas id="super-soccer-canvas" style="border: none; display: inline-block;" width="800" height="800">
-    </canvas>
-    <script src="/main.c39d6dcf.js"></script>
-    <div style="position: absolute; top: 0; right: 0">
-        <img id="hollande" class="clickable ps" style="transform: rotate(180deg)" width="100" height="100" src="/hollande.7dde791e.png">
-        <img id="macron" class="clickable rem" style="transform: rotate(180deg)" width="100" height="100" src="/macron-edit.2a538bed.png">
+<div id="home-screen" style="position: absolute; top: 0; left: 0; height: 100vh; width: 100vh; opacity: 0.8; background-color: black; display: flex; justify-content: center; align-items: center; ">
+    <div>
+        <h1 id="home-screen-text" style="color: white; text-align: center">Prêt à affronter l'elite ?</h1>
+        <button id="start-button" style="width: 100%;" class="btn btn-success">OUI</button>
     </div>
 
-    <div style="position: absolute; top: 0; left: 0">
-        <p style="margin-left: 6px; margin-top: 6px; color: white">Score : <span style="font-weight: 700" id="points-number">0</span></p>
-    </div>
-
-    <div id="home-screen" style="position: absolute; top: 0; left: 0; height: 100vh; width: 100vh; opacity: 0.8; background-color: black; display: flex; justify-content: center; align-items: center; ">
-        <div>
-            <h1 id="home-screen-text" style="color: white; text-align: center">Prêt à affronter l'elite ?</h1>
-            <button id="start-button" style="width: 100%;" class="btn btn-success">OUI</button>
-        </div>
-
-    </div>
+</div>
 
 </body>
 </html>

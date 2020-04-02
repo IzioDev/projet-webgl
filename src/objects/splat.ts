@@ -3,259 +3,259 @@ import {KeyHandler} from "./key-handler";
 
 export class Splat extends KeyHandler {
 
-    id: string;
-    texture: WebGLTexture;
-    gl: WebGL2RenderingContext;
-    shader: WebGLProgram;
+  id: string;
+  texture: WebGLTexture;
+  gl: WebGL2RenderingContext;
+  shader: WebGLProgram;
 
-    onTick: Function | null = null;
+  onTick: Function | null = null;
 
-    vao: WebGLVertexArrayObject;
-    vertexBuffer: WebGLVertexArrayObject;
-    coordBuffer: WebGLVertexArrayObject;
-    triangles: WebGLVertexArrayObject;
+  vao: WebGLVertexArrayObject;
+  vertexBuffer: WebGLVertexArrayObject;
+  coordBuffer: WebGLVertexArrayObject;
+  triangles: WebGLVertexArrayObject;
 
-    width = 0.2;
-    height = 0.2;
-    position = [-1.5,1.0,0.0];
-    couleur = [1,0,0];
-    time = 0.0;
+  width = 0.2;
+  height = 0.2;
+  position = [-1.5, 1.0, 0.0];
+  couleur = [1, 0, 0];
+  time = 0.0;
 
-    wo2 =  0.5*this.width;
-    ho2 = 0.5*this.height;
+  wo2 = 0.5 * this.width;
+  ho2 = 0.5 * this.height;
 
-    vertices = [
-        -this.wo2,-this.ho2, -0.8,
-        this.wo2,-this.ho2, -0.8,
-        this.wo2, this.ho2, -0.8,
-        -this.wo2, this.ho2, -0.8
-    ];
+  vertices = [
+    -this.wo2, -this.ho2, -0.8,
+    this.wo2, -this.ho2, -0.8,
+    this.wo2, this.ho2, -0.8,
+    -this.wo2, this.ho2, -0.8
+  ];
 
-    coords = [
-        0.0, 0.0,
-        1.0, 0.0,
-        1.0, 1.0,
-        0.0, 1.0
-    ];
+  coords = [
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0
+  ];
 
-    tri = [0,1,2,0,2,3];
+  tri = [0, 1, 2, 0, 2, 3];
 
-    loaded = false;
+  loaded = false;
 
-    private _onLeaveViewport: Function = () => null;
-    private _onCollide: (splat: Splat) => void = () => null;
+  private _onLeaveViewport: Function = () => null;
+  private _onCollide: (splat: Splat) => void = () => null;
 
-    constructor(gl: WebGL2RenderingContext, textureUri: string, program: WebGLProgram, id: string) {
-        super();
-        this.gl = gl;
+  constructor(gl: WebGL2RenderingContext, textureUri: string, program: WebGLProgram, id: string) {
+    super();
+    this.gl = gl;
 
-        this.texture = this.initTexture(textureUri);
-        this.shader = program;
+    this.texture = this.initTexture(textureUri);
+    this.shader = program;
 
-        this.id = id;
+    this.id = id;
 
-        this.bindToGC();
+    this.bindToGC();
+  }
+
+  bindToGC() {
+    const {gl} = this;
+
+    // cree un nouveau buffer sur le GPU et l'active
+    this.vertexBuffer = safeCreateBuffer(gl);
+    (this.vertexBuffer as any).itemSize = 3;
+    (this.vertexBuffer as any).numItems = 4;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+    gl.enableVertexAttribArray(0);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, (this.vertexBuffer as any).itemSize, gl.FLOAT, false, 0, 0);
+
+    // meme principe pour les coords
+    this.coordBuffer = safeCreateBuffer(gl);
+    (this.coordBuffer as any).itemSize = 2;
+    (this.coordBuffer as any).numItems = 4;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.coordBuffer);
+    gl.enableVertexAttribArray(1);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.coords), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(1, (this.coordBuffer as any).itemSize, gl.FLOAT, false, 0, 0);
+
+    // creation des faces du cube (les triangles) avec les indices vers les sommets
+    this.triangles = safeCreateBuffer(gl);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.triangles);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), gl.STATIC_DRAW);
+    (this.triangles as any).numItems = 6;
+
+    gl.bindVertexArray(null);
+
+    this.loaded = true;
+
+    console.log("splat initialized");
+  }
+
+  getShader() {
+    return this.shader;
+  }
+
+  initParameters() {
+    // paramètres par défaut d'un splat (taille, position, couleur)
+    this.width = 0.2;
+    this.height = 0.2;
+    this.position = [0.0, 0.0, 0.0];
+    this.couleur = [1, 0, 0];
+    this.time = 0.0;
+  }
+
+  setPosition(x: number, y: number, z: number) {
+    this.position = [x, y, z];
+  }
+
+  setParameters(elapsed: number) {
+    this.time += 0.01 * elapsed;
+
+    this.position[1] += 0.03;
+    this.position[0] += 0.01 * Math.sin(this.time * 4);
+
+    if (this.position[1] > 1) {
+      this.onLeaveViewport(this.position);
     }
+  }
 
-    bindToGC() {
-        const {gl} = this;
+  setOnTick(cb: Function) {
+    this.onTick = cb;
+  }
 
-        // cree un nouveau buffer sur le GPU et l'active
-        this.vertexBuffer = safeCreateBuffer(gl);
-        (this.vertexBuffer as any).itemSize = 3;
-        (this.vertexBuffer as any).numItems = 4;
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-        gl.enableVertexAttribArray(0);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(0, (this.vertexBuffer as any).itemSize, gl.FLOAT, false, 0, 0);
+  sendUniformVariables() {
+    // envoie des variables au shader (position du splat, couleur, texture)
+    // fonction appelée à chaque frame, avant le dessin du splat
+    if (this.loaded) {
+      const {gl, shader, texture} = this;
 
-        // meme principe pour les coords
-        this.coordBuffer = safeCreateBuffer(gl);
-        (this.coordBuffer as any).itemSize = 2;
-        (this.coordBuffer as any).numItems = 4;
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.coordBuffer);
-        gl.enableVertexAttribArray(1);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.coords), gl.STATIC_DRAW);
-        gl.vertexAttribPointer(1, (this.coordBuffer as any).itemSize, gl.FLOAT, false, 0, 0);
+      gl.uniform3fv((shader as any).positionUniform, this.position);
+      gl.uniform3fv((shader as any).couleurUniform, this.couleur);
 
-        // creation des faces du cube (les triangles) avec les indices vers les sommets
-        this.triangles = safeCreateBuffer(gl);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.triangles);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.tri), gl.STATIC_DRAW);
-        (this.triangles as any).numItems = 6;
-
-        gl.bindVertexArray(null);
-
-        this.loaded = true;
-
-        console.log("splat initialized");
+      // how to send a texture:
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.uniform1i((shader as any).texUniform, 0);
     }
+  }
 
-    getShader() {
-        return this.shader;
+  draw() {
+    // dessin du splat
+    if (this.loaded) {
+      const {gl} = this;
+      gl.bindVertexArray(this.vao);
+      gl.drawElements(gl.TRIANGLES, (this.triangles as any).numItems, gl.UNSIGNED_SHORT, 0);
+      gl.bindVertexArray(null);
     }
+  }
 
-    initParameters () {
-        // paramètres par défaut d'un splat (taille, position, couleur)
-        this.width = 0.2;
-        this.height = 0.2;
-        this.position = [0.0,0.0,0.0];
-        this.couleur = [1,0,0];
-        this.time = 0.0;
-    }
+  clear() {
+    // clear all GPU memory
+    // this.gl.deleteBuffer(this.vertexBuffer);
+    // this.gl.deleteBuffer(this.coordBuffer);
+    this.gl.deleteVertexArray(this.vao);
+    this.loaded = false;
+  }
 
-    setPosition (x: number,y: number,z: number) {
-        this.position = [x,y,z];
-    }
+  isAmmoSplat() {
+    return this.id.indexOf("ammo") !== -1;
+  }
 
-    setParameters (elapsed: number) {
-        this.time += 0.01*elapsed;
+  isMissileSplat() {
+    return this.id.indexOf("missile") !== -1;
+  }
 
-        this.position[1] += 0.03;
-        this.position[0] += 0.01*Math.sin(this.time * 4);
+  static initProgram(gl: WebGL2RenderingContext, program: WebGLProgram) {
+    // active ce shader
+    gl.useProgram(program);
 
-        if (this.position[1] > 1) {
-            this.onLeaveViewport(this.position);
-        }
-    }
+    // adresse des variables uniform dans le shader
+    (program as any).positionUniform = gl.getUniformLocation(
+      program,
+      "uPosition"
+    );
+    (program as any).texUniform = gl.getUniformLocation(program, "uTex");
+    (program as any).couleurUniform = gl.getUniformLocation(
+      program,
+      "maCouleur"
+    );
 
-    setOnTick(cb: Function){
-        this.onTick = cb;
-    }
+    console.log("splat shader initialized");
 
-    sendUniformVariables() {
-        // envoie des variables au shader (position du splat, couleur, texture)
-        // fonction appelée à chaque frame, avant le dessin du splat
-        if(this.loaded) {
-            const {gl, shader, texture} = this;
+    return program;
+  };
 
-            gl.uniform3fv((shader as any).positionUniform,this.position);
-            gl.uniform3fv((shader as any).couleurUniform,this.couleur);
+  initTexture = (
+    filePath: string,
+  ): WebGLTexture => {
+    const {gl} = this;
 
-            // how to send a texture:
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.uniform1i((shader as any).texUniform, 0);
-        }
-    }
+    const texture = safeCreateTexture(gl);
 
-    draw () {
-        // dessin du splat
-        if(this.loaded) {
-            const {gl} = this;
-            gl.bindVertexArray(this.vao);
-            gl.drawElements(gl.TRIANGLES, (this.triangles as any).numItems, gl.UNSIGNED_SHORT, 0);
-            gl.bindVertexArray(null);
-        }
-    }
+    gl.bindTexture(gl.TEXTURE_2D, texture);
 
-    clear() {
-        // clear all GPU memory
-        // this.gl.deleteBuffer(this.vertexBuffer);
-        // this.gl.deleteBuffer(this.coordBuffer);
-        this.gl.deleteVertexArray(this.vao);
-        this.loaded = false;
-    }
+    // Default texture during the real texture download
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      level,
+      internalFormat,
+      width,
+      height,
+      border,
+      srcFormat,
+      srcType,
+      pixel
+    );
+    const image = new Image();
 
-    isAmmoSplat() {
-        return this.id.indexOf("ammo") !== -1;
-    }
+    image.onload = function () {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        level,
+        internalFormat,
+        srcFormat,
+        srcType,
+        image
+      );
 
-    isMissileSplat() {
-        return this.id.indexOf("missile") !== -1;
-    }
+      if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+        gl.generateMipmap(gl.TEXTURE_2D);
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
 
-    static initProgram (gl: WebGL2RenderingContext, program: WebGLProgram) {
-        // active ce shader
-        gl.useProgram(program);
-
-        // adresse des variables uniform dans le shader
-        (program as any).positionUniform = gl.getUniformLocation(
-            program,
-            "uPosition"
-        );
-        (program as any).texUniform = gl.getUniformLocation(program, "uTex");
-        (program as any).couleurUniform = gl.getUniformLocation(
-            program,
-            "maCouleur"
-        );
-
-        console.log("splat shader initialized");
-
-        return program;
+      console.log("loaded a texture with real URI.");
     };
 
-    initTexture = (
-        filePath: string,
-    ): WebGLTexture => {
-        const {gl} = this;
+    image.src = filePath;
 
-        const texture = safeCreateTexture(gl);
+    return texture;
+  };
 
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+  get onLeaveViewport(): Function {
+    return this._onLeaveViewport;
+  }
 
-        // Default texture during the real texture download
-        const level = 0;
-        const internalFormat = gl.RGBA;
-        const width = 1;
-        const height = 1;
-        const border = 0;
-        const srcFormat = gl.RGBA;
-        const srcType = gl.UNSIGNED_BYTE;
-        const pixel = new Uint8Array([0, 0, 255, 255]);
-        gl.texImage2D(
-            gl.TEXTURE_2D,
-            level,
-            internalFormat,
-            width,
-            height,
-            border,
-            srcFormat,
-            srcType,
-            pixel
-        );
-        const image = new Image();
+  set onLeaveViewport(value: Function) {
+    this._onLeaveViewport = value;
+  }
 
-        image.onload = function() {
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(
-                gl.TEXTURE_2D,
-                level,
-                internalFormat,
-                srcFormat,
-                srcType,
-                image
-            );
+  get onCollide() {
+    return this._onCollide;
+  }
 
-            if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-                gl.generateMipmap(gl.TEXTURE_2D);
-            } else {
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            }
-
-            console.log("loaded a texture with real URI.");
-        };
-
-        image.src = filePath;
-
-        return texture;
-    };
-
-    get onLeaveViewport(): Function {
-        return this._onLeaveViewport;
-    }
-
-    set onLeaveViewport(value: Function) {
-        this._onLeaveViewport = value;
-    }
-
-    get onCollide() {
-        return this._onCollide;
-    }
-
-    set onCollide(value: (splat: Splat) => void) {
-        this._onCollide = value;
-    }
+  set onCollide(value: (splat: Splat) => void) {
+    this._onCollide = value;
+  }
 }

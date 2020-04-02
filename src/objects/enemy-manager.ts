@@ -1,6 +1,6 @@
-import { Scene } from "../scene";
-import { Splat } from "./splat";
-import { v4 as uuidv4 } from "uuid";
+import {Scene} from "../scene";
+import {Splat} from "./splat";
+import {v4 as uuidv4} from "uuid";
 
 export interface IEnemy {
   id: string;
@@ -41,7 +41,7 @@ export class EnemyManager {
       this.scene
         .addSplatFromUri(this.getImageUri(), `enemy-${uuidv4()}`)
         .then(splat => {
-          this.enemies.push({ id: splat.id, splat });
+          this.enemies.push({id: splat.id, splat});
 
           splat.setPosition(this.recFindGoodPosition(), 1, 0.5);
           splat.onTick = (elapsed: number) => {

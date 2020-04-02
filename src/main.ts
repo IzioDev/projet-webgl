@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   await scene.addModelFromObjectUri(planeObjUri, "plane-1").then(model => {
-    model.onCollide = ( _ => {
+    model.onCollide = (_ => {
       scene?.setStarted(false);
       document.getElementById('home-screen')!.style.display = "flex";
       const pointsSpan = document.getElementById("points-number")!;

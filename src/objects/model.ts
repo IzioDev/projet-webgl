@@ -1,6 +1,6 @@
-import { mat4, vec3 } from "gl-matrix";
-import { safeCreateBuffer } from "../utils/game-utils";
-import { KeyHandler } from "./key-handler";
+import {mat4, vec3} from "gl-matrix";
+import {safeCreateBuffer} from "../utils/game-utils";
+import {KeyHandler} from "./key-handler";
 
 export class Model extends KeyHandler {
   id: string;
@@ -96,7 +96,7 @@ export class Model extends KeyHandler {
 
   // @ts-ignore
   async load(): Promise<any> {
-    const { textureUri } = this;
+    const {textureUri} = this;
     // @ts-ignore
     return new Promise((res, rej) => {
       // lecture du fichier, récupération des positions et des normales
@@ -104,7 +104,7 @@ export class Model extends KeyHandler {
       var xmlhttp = new XMLHttpRequest();
       var instance = this;
 
-      xmlhttp.onreadystatechange = function() {
+      xmlhttp.onreadystatechange = function () {
         if (xmlhttp.readyState == XMLHttpRequest.DONE) {
           if (xmlhttp.status == 200) {
             var data = xmlhttp.responseText;
@@ -215,7 +215,7 @@ export class Model extends KeyHandler {
   }
 
   handleLoadedObject(objData: any) {
-    const { gl } = this;
+    const {gl} = this;
 
     var vertices = objData[0];
     var normals = objData[1];
@@ -326,7 +326,7 @@ export class Model extends KeyHandler {
     // on envoie les matrices de transformation (model/view/proj) au shader
     // fonction appelée a chaque frame, avant le dessin du vaisseau
     if (this.loaded) {
-      const { gl, shader } = this;
+      const {gl, shader} = this;
 
       var m = this.modelMatrix;
       var v = this.viewMatrix;
